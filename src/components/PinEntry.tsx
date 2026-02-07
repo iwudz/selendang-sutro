@@ -1,6 +1,6 @@
 
 import { useState, forwardRef, useImperativeHandle, useCallback } from 'react';
-import { UtensilsCrossed, Delete, AlertCircle } from 'lucide-react';
+import { Delete, AlertCircle } from 'lucide-react';
 
 interface PinEntryProps {
   onLogin: (pin: string) => void;
@@ -87,9 +87,7 @@ const PinEntry = forwardRef<PinEntryRef, PinEntryProps>(({ onLogin }, ref) => {
     <div className="min-h-screen bg-emerald-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm text-center">
         <div className="flex justify-center mb-6">
-          <div className="bg-white p-4 rounded-full shadow-2xl">
-            <UtensilsCrossed className="w-10 h-10 text-emerald-800" />
-          </div>
+            <img src="/logo.png" alt="Selendang Sutro Logo" className="w-40 h-40 object-contain rounded-full animate-pulse" />
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">SELENDANG SUTRO</h1>
         <p className="text-emerald-100/80 text-sm mb-8">Silahkan masukkan PIN anda</p>

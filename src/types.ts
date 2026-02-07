@@ -59,6 +59,7 @@ export interface Order {
   paidAt?: number;
   waiterId: string;
   paymentMethod?: PaymentMethod;
+  _syncStatus?: 'syncing' | 'synced' | 'failed';
 }
 
 export interface User {

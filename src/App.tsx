@@ -7,7 +7,8 @@ import { api } from './services/api';
 import PinEntry from './components/PinEntry';
 import type { PinEntryRef } from './components/PinEntry';
 import WaiterPage from './components/WaiterPage';
-import { LogOut, UtensilsCrossed } from 'lucide-react';
+import { LogOut, Soup, Wifi, WifiOff, Clock } from 'lucide-react';
+import { SUPABASE_CONFIG } from './constants';
 import { lazy, Suspense } from 'react';
 
 if (typeof window !== 'undefined') {
@@ -19,6 +20,12 @@ if (typeof window !== 'undefined') {
         }
         originalWarn.apply(console, args);
     };
+
+    window.addEventListener('unhandledrejection', (event) => {
+        if (event.reason?.message?.includes('message channel closed')) {
+            event.preventDefault();
+        }
+    });
 }
 
 const App: React.FC = () => {
@@ -26,13 +33,14 @@ const App: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const pinEntryRef = useRef<PinEntryRef>(null);
 
   const AdminPageLazy = lazy(() => import('./components/AdminPage'));
   const OwnerPageLazy = lazy(() => import('./components/OwnerPage'));
 
-  const { loading, error, data: supabaseData } = useSupabase();
+  const { loading, error, data: supabaseData, isConnected } = useSupabase();
 
   useEffect(() => {
     if (supabaseData) {
@@ -61,17 +69,29 @@ const App: React.FC = () => {
   };
 
   const addOrder = async (newOrder: Order) => {
-    setOrders(prev => [newOrder, ...prev]);
+    setOrders(prev => [{ ...newOrder, _syncStatus: 'syncing' }, ...prev]);
+    setIsSyncing(true);
 
     try {
       const realId = await api.orders.create(newOrder);
-      if (realId) {
-        setOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, id: realId } : o));
+      
+      setOrders(prev => prev.map(o => 
+        o.id === newOrder.id 
+          ? { ...o, id: realId || o.id, _syncStatus: realId ? 'synced' : 'failed' as const }
+          : o
+      ));
+      
+      if (!realId) {
+        throw new Error('Gagal menyimpan ke database');
       }
     } catch (err: any) {
       console.error("Gagal simpan order:", err);
+      setOrders(prev => prev.map(o => 
+        o.id === newOrder.id ? { ...o, _syncStatus: 'failed' as const } : o
+      ));
       alert("Gagal menyimpan order ke server: " + err.message);
-      setOrders(prev => prev.filter(o => o.id !== newOrder.id));
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -130,7 +150,7 @@ const App: React.FC = () => {
       <header className="bg-emerald-900 text-white shadow-md p-4 flex justify-between items-center sticky top-0 z-50 border-b border-emerald-800">
         <div className="flex items-center gap-3">
           <div className="bg-white p-1.5 rounded-lg">
-            <UtensilsCrossed className="w-5 h-5 text-emerald-900" />
+            <Soup className="w-5 h-5 text-emerald-900" />
           </div>
           <div>
             <h1 className="text-lg font-black tracking-tighter uppercase leading-none">SELENDANG SUTRO</h1>
@@ -138,6 +158,25 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            {isSyncing ? (
+              <span className="flex items-center gap-1 text-amber-400 text-xs">
+                <Clock className="w-3 h-3 animate-spin" /> Syncing...
+              </span>
+            ) : isConnected && SUPABASE_CONFIG.URL ? (
+              <span className="flex items-center gap-1 text-emerald-400 text-xs">
+                <Wifi className="w-3 h-3" /> Online
+              </span>
+            ) : !SUPABASE_CONFIG.URL ? (
+              <span className="flex items-center gap-1 text-blue-400 text-xs">
+                <Wifi className="w-3 h-3" /> Local
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-slate-400 text-xs">
+                <WifiOff className="w-3 h-3" /> Offline
+              </span>
+            )}
+          </div>
           <div className="text-right hidden sm:block">
             <p className="text-xs font-black uppercase tracking-widest text-emerald-300 mb-0.5">{currentUser.role}</p>
             <p className="text-sm font-bold leading-none">{currentUser.name}</p>

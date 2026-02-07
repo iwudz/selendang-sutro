@@ -51,6 +51,7 @@ const useSupabase = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const channelsRef = useRef<RealtimeChannel[]>([]);
+    const isSubscribed = useRef(false);
 
     const fetchInitialData = async () => {
         if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) {
@@ -67,48 +68,43 @@ const useSupabase = () => {
         }
 
         try {
-            const { data: menuData, error: menuError } = await supabase
-                .from('menu_items')
-                .select('*')
-                .order('name');
-            
-            if (menuError) throw menuError;
-            
-            const mappedMenu = (menuData || []).map(mapMenuItem);
-            setData(prev => ({ ...prev, menuItems: mappedMenu.length > 0 ? mappedMenu : INITIAL_MENU_ITEMS }));
+            const [menuResult, userResult, orderResult] = await Promise.all([
+                supabase.from('menu_items').select('*').order('name'),
+                supabase.from('users').select('*'),
+                supabase.from('orders').select('*').order('created_at', { ascending: false })
+            ]);
 
-            const { data: userData, error: userError } = await supabase
-                .from('users')
-                .select('*');
-            
-            if (userError) throw userError;
-            
-            const mappedUsers = (userData || []).map(mapUser);
-            setData(prev => ({ ...prev, users: mappedUsers.length > 0 ? mappedUsers : INITIAL_USERS }));
+            if (menuResult.error) throw menuResult.error;
+            if (userResult.error) throw userResult.error;
+            if (orderResult.error) throw orderResult.error;
 
-            const { data: orderData, error: orderError } = await supabase
-                .from('orders')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (orderError) throw orderError;
-            
-            const mappedOrders = (orderData || []).map(mapOrder);
-            setData(prev => ({ ...prev, orders: mappedOrders }));
+            const mappedMenu = (menuResult.data || []).map(mapMenuItem);
+            const mappedUsers = (userResult.data || []).map(mapUser);
+            const mappedOrders = (orderResult.data || []).map(mapOrder);
+
+            setData(prev => ({
+                ...prev,
+                orders: mappedOrders,
+                menuItems: mappedMenu.length > 0 ? mappedMenu : INITIAL_MENU_ITEMS,
+                users: mappedUsers.length > 0 ? mappedUsers : INITIAL_USERS
+            }));
 
             setLoading(false);
         } catch (err: any) {
             console.error("Gagal sinkronisasi Supabase:", err);
-            setError("Gagal terhubung ke database. Cek internet atau konfigurasi API Key.");
+            setError("Gagal terhubung ke database.");
             setLoading(false);
         }
     };
 
     const setupRealtimeSubscription = () => {
         if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) return;
+        if (isSubscribed.current) return;
+        
+        isSubscribed.current = true;
 
-        const orderChannel = supabase
-            .channel('orders-changes')
+        const subscription = supabase
+            .channel('app-changes')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'orders' },
@@ -134,46 +130,47 @@ const useSupabase = () => {
                     }
                 }
             )
-            .subscribe();
-
-        const menuChannel = supabase
-            .channel('menu-changes')
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'menu_items' },
+                { event: 'UPDATE', schema: 'public', table: 'menu_items' },
                 (payload) => {
-                    if (payload.eventType === 'UPDATE') {
-                        const updatedItem = mapMenuItem(payload.new as Record<string, unknown>);
-                        setData(prev => ({
-                            ...prev,
-                            menuItems: prev.menuItems.map(m => m.id === updatedItem.id ? updatedItem : m)
-                        }));
-                    }
+                    const updatedItem = mapMenuItem(payload.new as Record<string, unknown>);
+                    setData(prev => ({
+                        ...prev,
+                        menuItems: prev.menuItems.map(m => m.id === updatedItem.id ? updatedItem : m)
+                    }));
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Supabase subscription active');
+                }
+                if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                    isSubscribed.current = false;
+                }
+            });
 
-        channelsRef.current = [orderChannel, menuChannel];
+        channelsRef.current = [subscription];
     };
 
     useEffect(() => {
         fetchInitialData();
+        return () => {
+            channelsRef.current.forEach(channel => {
+                supabase.removeChannel(channel);
+            });
+            channelsRef.current = [];
+            isSubscribed.current = false;
+        };
     }, []);
 
     useEffect(() => {
         if (!loading && SUPABASE_CONFIG.URL && SUPABASE_CONFIG.ANON_KEY) {
             setupRealtimeSubscription();
         }
-
-        return () => {
-            channelsRef.current.forEach(channel => {
-                supabase.removeChannel(channel);
-            });
-            channelsRef.current = [];
-        };
     }, [loading]);
 
-    return { data, loading, error, fetchInitialData };
+    return { data, loading, error, fetchInitialData, isConnected: isSubscribed.current };
 };
 
 export default useSupabase;

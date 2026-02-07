@@ -6,7 +6,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { 
   TrendingUp, Utensils, Plus, 
   LayoutDashboard, Edit3, Trash2, ShieldCheck, XCircle, Menu as HamburgerIcon, Calendar,
-  ImageIcon, CheckCircle2, AlertCircle, Camera, Loader2, Upload, AlertTriangle, BarChart3
+  ImageIcon, CheckCircle2, AlertCircle, Camera, Loader2, Upload, AlertTriangle, BarChart3,
+  ShoppingBag, Clock
 } from 'lucide-react';
 import { SUPABASE_CONFIG } from '../constants';
 import ChartContainer from './ChartContainer';
@@ -19,8 +20,15 @@ interface OwnerPageProps {
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
 }
 
-type TabMode = 'Dashboard' | 'Menu' | 'Users';
+type TabMode = 'Dashboard' | 'Menu' | 'Users' | 'Orders';
 const CATEGORIES: MenuCategory[] = ['Menu Utama', 'Camilan', 'Minuman Dingin', 'Minuman Panas'];
+
+const STATUS_CONFIG = {
+  [OrderStatus.NEW_ORDER]: { label: 'New Order', color: 'amber', icon: '🔔' },
+  [OrderStatus.COOKING]: { label: 'Cooking', color: 'blue', icon: '🍳' },
+  [OrderStatus.SERVED]: { label: 'Served', color: 'emerald', icon: '✅' },
+  [OrderStatus.PAID]: { label: 'Paid', color: 'slate', icon: '💰' }
+} as const;
 
 const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, users, setUsers }) => {
   const [activeTab, setActiveTab] = useState<TabMode>('Dashboard');
@@ -29,7 +37,6 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
   const [editingUser, setEditingUser] = useState<Partial<User> | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
-  // State untuk Custom Delete Modal
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; type: 'menu' | 'user'; id: string; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -42,7 +49,6 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
 
   const getBaseUrl = () => SUPABASE_CONFIG.URL.replace(/\/$/, '');
 
-  // Headers untuk Supabase REST API
   const getHeaders = () => ({
     'Content-Type': 'application/json',
     'apikey': SUPABASE_CONFIG.ANON_KEY,
@@ -50,7 +56,6 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
     'Prefer': 'return=representation'
   });
 
-  // --- ANALYTICS ---
   const paidOrdersInRange = useMemo(() => {
     return orders.filter(o => {
       if (o.status !== OrderStatus.PAID) return false;
@@ -59,15 +64,19 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
     });
   }, [orders, dateRange]);
 
+  const liveStats = {
+    new: orders.filter(o => o.status === OrderStatus.NEW_ORDER).length,
+    cook: orders.filter(o => o.status === OrderStatus.COOKING).length,
+    served: orders.filter(o => o.status === OrderStatus.SERVED).length,
+  };
+
   const totalRevenueInRange = useMemo(() => paidOrdersInRange.reduce((sum, o) => sum + o.totalPrice, 0), [paidOrdersInRange]);
 
   const chartData = useMemo(() => {
-    // Create a date map for all dates in the range
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
     const dateMap: Record<string, number> = {};
     
-    // Initialize all dates in the range with 0 value
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const dateKey = currentDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
@@ -75,7 +84,6 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Fill in actual data
     paidOrdersInRange.forEach(o => {
       const date = new Date(o.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
       dateMap[date] = (dateMap[date] || 0) + o.totalPrice;
@@ -109,12 +117,6 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       total: count ? (total/count).toFixed(1) : '0' 
     };
   }, [paidOrdersInRange]);
-
-  const liveStats = {
-    new: orders.filter(o => o.status === OrderStatus.NEW_ORDER).length,
-    cook: orders.filter(o => o.status === OrderStatus.COOKING).length,
-    served: orders.filter(o => o.status === OrderStatus.SERVED).length,
-  };
 
   // --- BEST SELLING MENU ---
   const bestSellingMenu = useMemo(() => {
@@ -413,6 +415,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
 
   const navItems = [
     { id: 'Dashboard', icon: LayoutDashboard, label: 'Performance' },
+    { id: 'Orders', icon: ShoppingBag, label: 'Live Orders' },
     { id: 'Menu', icon: Utensils, label: 'Menu Katalog' },
     { id: 'Users', icon: ShieldCheck, label: 'Akses User' }
   ];
@@ -590,6 +593,96 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
                 <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1.5 leading-none">Total</p>
                 <p className="text-2xl font-black text-emerald-900 leading-none">{performanceStats.total}<span className="text-[10px] ml-0.5 text-emerald-400">m</span></p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Orders' && (
+          <div className="animate-in fade-in duration-500 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase flex items-center gap-3">
+                  <ShoppingBag className="w-6 h-6 text-emerald-600" /> Live Orders
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">Monitoring pesanan real-time dari semua device</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-emerald-600">
+                <Clock className="w-4 h-4 animate-pulse" /> Live
+              </div>
+            </div>
+
+            {/* Status Summary Cards */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-[1.5rem] text-center">
+                <p className="text-3xl font-black text-amber-600">{liveStats.new}</p>
+                <p className="text-[9px] font-black text-amber-700 uppercase tracking-widest mt-1">New Order</p>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-[1.5rem] text-center">
+                <p className="text-3xl font-black text-blue-600">{liveStats.cook}</p>
+                <p className="text-[9px] font-black text-blue-700 uppercase tracking-widest mt-1">Cooking</p>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-[1.5rem] text-center">
+                <p className="text-3xl font-black text-emerald-600">{liveStats.served}</p>
+                <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest mt-1">Served</p>
+              </div>
+            </div>
+
+            {/* Orders List */}
+            <div className="space-y-3">
+              {orders.length === 0 ? (
+                <div className="bg-white p-12 rounded-[2rem] border border-slate-200 text-center">
+                  <ShoppingBag className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                  <p className="font-black text-slate-400 uppercase tracking-widest text-sm">Belum ada pesanan</p>
+                </div>
+              ) : (
+                orders.slice(0, 20).map((order) => {
+                  const statusConfig = STATUS_CONFIG[order.status];
+                  const timeAgo = Math.floor((Date.now() - order.createdAt) / 60000);
+                  
+                  return (
+                    <div key={order.id} className="bg-white border border-slate-200 rounded-[1.5rem] p-5 shadow-sm">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-lg text-slate-800 uppercase">{order.tableNumber}</p>
+                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                              order.status === OrderStatus.NEW_ORDER ? 'bg-amber-100 text-amber-700' :
+                              order.status === OrderStatus.COOKING ? 'bg-blue-100 text-blue-700' :
+                              order.status === OrderStatus.SERVED ? 'bg-emerald-100 text-emerald-700' :
+                              'bg-slate-100 text-slate-600'
+                            }`}>
+                              {statusConfig.icon} {statusConfig.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1 text-slate-400">
+                            <Clock className="w-3 h-3" />
+                            <span className="text-[10px] font-bold">{timeAgo}m lalu</span>
+                            <span className="text-slate-200">|</span>
+                            <span className="text-[10px] font-bold text-slate-500">{order.id}</span>
+                          </div>
+                        </div>
+                        <p className="font-black text-emerald-700 text-lg">Rp {order.totalPrice.toLocaleString('id-ID')}</p>
+                      </div>
+                      
+                      <div className="space-y-2 border-t border-slate-100 pt-3">
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span className="text-slate-600 font-medium">{item.quantity}x {item.menuItem.name}</span>
+                            <span className="text-slate-400">Rp {(item.menuItem.price * item.quantity).toLocaleString('id-ID')}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {order.notes && (
+                        <div className="mt-3 bg-yellow-50 border border-yellow-100 rounded-xl p-3">
+                          <p className="text-[10px] font-black text-yellow-700 uppercase tracking-widest mb-1">Catatan:</p>
+                          <p className="text-xs text-yellow-800 font-medium">{order.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}

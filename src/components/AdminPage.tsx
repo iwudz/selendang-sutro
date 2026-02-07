@@ -97,7 +97,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
       `}</style>
 
       {newOrderAlert && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-60 bg-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
           <Bell className="w-5 h-5 animate-bounce" />
           <span className="font-bold text-sm">{newOrderAlert}</span>
         </div>
@@ -239,8 +239,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
       {/* Stock Manager Modal */}
       {showStockManager && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in-95">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-4xl shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in-95">
             <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight leading-none">Status Stok</h3>
               <button onClick={() => setShowStockManager(false)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-300" /></button>
@@ -336,7 +336,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
       {/* Payment Selection Modal with Receipt Details */}
       {selectedOrderForPayment && !showQrisFullScreen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center overflow-y-auto p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-end sm:items-center justify-center overflow-y-auto p-4">
           <div className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[90vh]">
             <div className="p-8 pb-4 text-center border-b border-slate-50">
               <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase leading-none">{selectedOrderForPayment.tableNumber}</h2>
@@ -345,7 +345,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
             {/* Receipt Details Section */}
             <div className="flex-1 overflow-y-auto p-8 pt-4">
-              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] p-6 font-mono text-xs text-slate-600">
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-4xl p-6 font-mono text-xs text-slate-600">
                 <div className="flex justify-between mb-4 border-b border-slate-200 pb-2">
                   <span className="font-bold uppercase">{selectedOrderForPayment.tableNumber}</span>
                   <span>{new Date(selectedOrderForPayment.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -373,11 +373,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
             <div className="p-8 pt-0 space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => finalizePayment(PaymentMethod.CASH)} className="flex flex-col items-center gap-3 p-6 bg-white border-2 border-slate-100 hover:border-emerald-600 rounded-[2rem] transition-all group active:scale-95 shadow-sm">
+                <button onClick={() => finalizePayment(PaymentMethod.CASH)} className="flex flex-col items-center gap-3 p-6 bg-white border-2 border-slate-100 hover:border-emerald-600 rounded-4xl transition-all group active:scale-95 shadow-sm">
                   <Banknote className="w-8 h-8 text-emerald-600 transition-transform group-active:scale-90" />
                   <span className="font-black text-[10px] uppercase tracking-widest">TUNAI</span>
                 </button>
-                <button onClick={() => setShowQrisFullScreen(true)} className="flex flex-col items-center gap-3 p-6 bg-white border-2 border-slate-100 hover:border-blue-600 rounded-[2rem] transition-all group active:scale-95 shadow-sm">
+                <button onClick={() => setShowQrisFullScreen(true)} className="flex flex-col items-center gap-3 p-6 bg-white border-2 border-slate-100 hover:border-blue-600 rounded-4xl transition-all group active:scale-95 shadow-sm">
                   <QrCode className="w-8 h-8 text-blue-600 transition-transform group-active:scale-90" />
                   <span className="font-black text-[10px] uppercase tracking-widest">QRIS</span>
                 </button>
@@ -390,7 +390,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
       {/* Edit Order Modal */}
       {editingOrder && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-150 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight leading-none">Edit Pesanan</h3>
@@ -497,7 +497,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
       {/* QRIS Modal */}
       {showQrisFullScreen && selectedOrderForPayment && (
-        <div className="fixed inset-0 bg-white z-[150] flex flex-col items-center justify-center p-6 animate-in fade-in">
+        <div className="fixed inset-0 bg-white z-150 flex flex-col items-center justify-center p-6 animate-in fade-in">
           <div className="w-full max-w-sm bg-white rounded-[3.5rem] overflow-hidden shadow-2xl border flex flex-col">
             <div className="bg-slate-50 p-6 flex flex-col items-center border-b">
               <div className="flex items-center gap-2 mb-2">
@@ -513,7 +513,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
               <p className="text-4xl font-black text-slate-800 tracking-tighter">Rp {selectedOrderForPayment.totalPrice.toLocaleString('id-ID')}</p>
             </div>
             <div className="p-6 bg-slate-50 border-t flex flex-col gap-3">
-              <button onClick={() => finalizePayment(PaymentMethod.QRIS)} className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all">
+              <button onClick={() => finalizePayment(PaymentMethod.QRIS)} className="w-full py-5 bg-emerald-600 text-white rounded-4xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all">
                 <Check className="w-5 h-5" /> KONFIRMASI BAYAR
               </button>
               <button onClick={() => setShowQrisFullScreen(false)} className="py-4 text-slate-400 font-bold uppercase text-[10px]">Kembali</button>
