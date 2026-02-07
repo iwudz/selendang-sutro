@@ -7,7 +7,7 @@ import { api } from './services/api';
 import PinEntry from './components/PinEntry';
 import type { PinEntryRef } from './components/PinEntry';
 import WaiterPage from './components/WaiterPage';
-import { LogOut, Soup, Wifi, WifiOff, Clock } from 'lucide-react';
+import { LogOut, Soup, Wifi, WifiOff } from 'lucide-react';
 import { SUPABASE_CONFIG } from './constants';
 import { lazy, Suspense } from 'react';
 
@@ -33,14 +33,13 @@ const App: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const pinEntryRef = useRef<PinEntryRef>(null);
 
   const AdminPageLazy = lazy(() => import('./components/AdminPage'));
   const OwnerPageLazy = lazy(() => import('./components/OwnerPage'));
 
-  const { loading, error, data: supabaseData, isConnected } = useSupabase();
+  const { loading, error, data: supabaseData, refresh, isConnected, lastUpdated } = useSupabase();
 
   useEffect(() => {
     if (supabaseData) {
@@ -49,6 +48,14 @@ const App: React.FC = () => {
       setUsers(supabaseData.users);
     }
   }, [supabaseData]);
+
+  const formatLastUpdated = () => {
+    if (!lastUpdated) return 'Belum sync';
+    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (seconds < 5) return 'Just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    return `${Math.floor(seconds / 60)}m ago`;
+  };
 
   const handleLogin = (pin: string) => {
     const user = users.find(u => u.pin === pin);
@@ -69,29 +76,11 @@ const App: React.FC = () => {
   };
 
   const addOrder = async (newOrder: Order) => {
-    setOrders(prev => [{ ...newOrder, _syncStatus: 'syncing' }, ...prev]);
-    setIsSyncing(true);
-
     try {
-      const realId = await api.orders.create(newOrder);
-      
-      setOrders(prev => prev.map(o => 
-        o.id === newOrder.id 
-          ? { ...o, id: realId || o.id, _syncStatus: realId ? 'synced' : 'failed' as const }
-          : o
-      ));
-      
-      if (!realId) {
-        throw new Error('Gagal menyimpan ke database');
-      }
+      await api.orders.create(newOrder);
     } catch (err: any) {
       console.error("Gagal simpan order:", err);
-      setOrders(prev => prev.map(o => 
-        o.id === newOrder.id ? { ...o, _syncStatus: 'failed' as const } : o
-      ));
       alert("Gagal menyimpan order ke server: " + err.message);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -159,18 +148,20 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            {isSyncing ? (
-              <span className="flex items-center gap-1 text-amber-400 text-xs">
-                <Clock className="w-3 h-3 animate-spin" /> Syncing...
-              </span>
-            ) : isConnected && SUPABASE_CONFIG.URL ? (
-              <span className="flex items-center gap-1 text-emerald-400 text-xs">
-                <Wifi className="w-3 h-3" /> Online
-              </span>
+            {isConnected && SUPABASE_CONFIG.URL ? (
+              <div className="flex flex-col items-start">
+                <span className="flex items-center gap-1 text-emerald-400 text-xs">
+                  <Wifi className="w-3 h-3" /> Online
+                </span>
+                <span className="text-[9px] text-emerald-500/60">{formatLastUpdated()}</span>
+              </div>
             ) : !SUPABASE_CONFIG.URL ? (
-              <span className="flex items-center gap-1 text-blue-400 text-xs">
-                <Wifi className="w-3 h-3" /> Local
-              </span>
+              <div className="flex flex-col items-start">
+                <span className="flex items-center gap-1 text-blue-400 text-xs">
+                  <Wifi className="w-3 h-3" /> Local
+                </span>
+                <span className="text-[9px] text-blue-400/60">{formatLastUpdated()}</span>
+              </div>
             ) : (
               <span className="flex items-center gap-1 text-slate-400 text-xs">
                 <WifiOff className="w-3 h-3" /> Offline
@@ -218,6 +209,8 @@ const App: React.FC = () => {
               setMenuItems={setMenuItems}
               users={users}
               setUsers={setUsers}
+              onRefresh={refresh}
+              isConnected={isConnected}
             />
           </Suspense>
         )}

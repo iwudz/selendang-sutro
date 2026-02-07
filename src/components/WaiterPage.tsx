@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { MenuItem, Order, OrderItem, User, MenuCategory } from '../types';
 import { OrderStatus } from '../types';
-import { Search, Plus, Minus, ShoppingCart, Send, ChevronDown, X, Maximize2, ListFilter, Check, Utensils, Coffee, IceCream, Flame, Play } from 'lucide-react';
+import { Search, Plus, Minus, ShoppingCart, Send, ChevronDown, X, Maximize2, ListFilter, Check, Utensils, Coffee, IceCream, Flame } from 'lucide-react';
 
 interface WaiterPageProps {
   currentUser: User;
@@ -35,7 +35,6 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
   const [zoomImage, setZoomImage] = useState<MenuItem | null>(null);
   const [showSplash, setShowSplash] = useState(false);
   const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
-  const [isStandby, setIsStandby] = useState(true);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
   const tableInputRef = useRef<HTMLInputElement>(null);
   const notesInputRef = useRef<HTMLTextAreaElement>(null);
@@ -136,13 +135,12 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
       setTableInfo('');
       setNotes('');
       setIsCartExpanded(false);
-      setIsStandby(true);
     }, 2500);
   };
 
   return (
     <div className="flex h-full flex-col lg:flex-row overflow-hidden bg-slate-50 relative">
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-32 lg:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-28 lg:pb-0">
         <div className="p-4 lg:p-6 bg-white/80 backdrop-blur-xl border-b sticky top-0 z-20">
           <div className="flex items-center gap-3 max-w-4xl mx-auto w-full relative">
             <div className="relative flex-1">
@@ -211,99 +209,88 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
           )}
         </div>
 
-        {isStandby ? (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <button 
-              onClick={() => setIsStandby(false)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-8 rounded-[2rem] text-2xl font-black uppercase tracking-widest shadow-2xl shadow-emerald-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
-            >
-              <Play className="w-8 h-8" /> New Order
-            </button>
-          </div>
-        ) : (
-          <div className="p-4 lg:p-8 space-y-8">
-            {groupedItems.map(({ group, items }) => (
-              <div key={group.id}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest ${
-                    group.id === 'makanan' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {group.label}
-                  </div>
-                  <div className="h-px bg-slate-200 flex-1" />
+        <div className="p-4 lg:p-8 space-y-8">
+          {groupedItems.map(({ group, items }) => (
+            <div key={group.id}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest ${
+                  group.id === 'makanan' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {group.label}
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
-                  {items.map(item => {
-                    const inCart = cart.find(i => i.menuItem.id === item.id);
-                    return (
-                      <div key={item.id} className={`bg-white rounded-xl border border-slate-200/60 overflow-hidden group shadow-sm flex flex-col transition-all duration-300 ${item.isSoldOut ? 'opacity-80 grayscale-[0.4]' : 'hover:shadow-xl hover:-translate-y-1'}`}>
-                        <div className="aspect-[4/3] relative overflow-hidden bg-slate-100">
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
-                            loading="lazy"
-                            onLoad={() => handleImageLoad(item.id)}
-                            className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${imageLoaded[item.id] ? 'opacity-100' : 'opacity-0'}`} 
-                          />
-                          {!imageLoaded[item.id] && (
-                            <div className="absolute inset-0 bg-slate-200 animate-pulse" />
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                          <button 
-                            onClick={() => setZoomImage(item)}
-                            className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-md text-white rounded-xl hover:bg-white hover:text-emerald-600 transition-all active:scale-90"
-                          >
-                            <Maximize2 className="w-4 h-4" />
-                          </button>
-                          {item.isSoldOut && (
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                              <span className="bg-red-500 text-white px-4 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest shadow-xl ring-2 ring-red-400">SOLD OUT</span>
-                            </div>
-                          )}
+                <div className="h-px bg-slate-200 flex-1" />
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
+                {items.map(item => {
+                  const inCart = cart.find(i => i.menuItem.id === item.id);
+                  return (
+                    <div key={item.id} className={`bg-white rounded-xl border border-slate-200/60 overflow-hidden group shadow-sm flex flex-col transition-all duration-300 ${item.isSoldOut ? 'opacity-80 grayscale-[0.4]' : 'hover:shadow-xl hover:-translate-y-1'}`}>
+                      <div className="aspect-[4/3] relative overflow-hidden bg-slate-100">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          loading="lazy"
+                          onLoad={() => handleImageLoad(item.id)}
+                          className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${imageLoaded[item.id] ? 'opacity-100' : 'opacity-0'}`} 
+                        />
+                        {!imageLoaded[item.id] && (
+                          <div className="absolute inset-0 bg-slate-200 animate-pulse" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                        <button 
+                          onClick={() => setZoomImage(item)}
+                          className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-md text-white rounded-xl hover:bg-white hover:text-emerald-600 transition-all active:scale-90"
+                        >
+                          <Maximize2 className="w-4 h-4" />
+                        </button>
+                        {item.isSoldOut && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                            <span className="bg-red-500 text-white px-4 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest shadow-xl ring-2 ring-red-400">SOLD OUT</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+                        <div>
+                          <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 leading-none flex items-center gap-1">
+                            {CATEGORY_ICONS[item.category]}
+                            {item.category}
+                          </p>
+                          <h3 className="font-bold text-sm text-slate-800 leading-tight line-clamp-2 min-h-[2.5rem] uppercase">{item.name}</h3>
+                          <p className="font-black text-slate-400 text-xs mt-1">Rp {item.price.toLocaleString('id-ID')}</p>
                         </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                          <div>
-                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 leading-none flex items-center gap-1">
-                              {CATEGORY_ICONS[item.category]}
-                              {item.category}
-                            </p>
-                            <h3 className="font-bold text-sm text-slate-800 leading-tight line-clamp-2 min-h-[2.5rem] uppercase">{item.name}</h3>
-                            <p className="font-black text-slate-400 text-xs mt-1">Rp {item.price.toLocaleString('id-ID')}</p>
-                          </div>
-                          <div className="pt-2">
-                            {inCart ? (
-                              <div className="flex items-center gap-1 bg-emerald-50 rounded-[1.2rem] p-1 shadow-inner border border-emerald-100">
-                                <button onClick={() => updateCart(item, -1)} className="w-9 h-9 flex items-center justify-center bg-white text-emerald-600 rounded-xl shadow-sm hover:bg-emerald-50 active:scale-90 transition-all"><Minus className="w-4 h-4" /></button>
-                                <span className="flex-1 text-center font-black text-emerald-900 text-sm">{inCart.quantity}</span>
-                                <button onClick={() => updateCart(item, 1)} className="w-9 h-9 flex items-center justify-center bg-emerald-600 text-white rounded-xl shadow-sm hover:bg-emerald-700 active:scale-90 transition-all"><Plus className="w-4 h-4" /></button>
-                              </div>
-                            ) : (
-                              <button 
-                                disabled={item.isSoldOut}
-                                onClick={() => updateCart(item, 1)}
-                                className={`w-full py-3.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-                                  item.isSoldOut ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-700/60 text-white hover:bg-emerald-600 shadow-lg shadow-slate-100'
-                                }`}
-                              >
-                                <Plus className="w-4 h-4" /> Tambah
-                              </button>
-                            )}
-                          </div>
+                        <div className="pt-2">
+                          {inCart ? (
+                            <div className="flex items-center gap-1 bg-emerald-50 rounded-[1.2rem] p-1 shadow-inner border border-emerald-100">
+                              <button onClick={() => updateCart(item, -1)} className="w-9 h-9 flex items-center justify-center bg-white text-emerald-600 rounded-xl shadow-sm hover:bg-emerald-50 active:scale-90 transition-all"><Minus className="w-4 h-4" /></button>
+                              <span className="flex-1 text-center font-black text-emerald-900 text-sm">{inCart.quantity}</span>
+                              <button onClick={() => updateCart(item, 1)} className="w-9 h-9 flex items-center justify-center bg-emerald-600 text-white rounded-xl shadow-sm hover:bg-emerald-700 active:scale-90 transition-all"><Plus className="w-4 h-4" /></button>
+                            </div>
+                          ) : (
+                            <button 
+                              disabled={item.isSoldOut}
+                              onClick={() => updateCart(item, 1)}
+                              className={`w-full py-3.5 rounded-[1rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                                item.isSoldOut ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-700/60 text-white hover:bg-emerald-600 shadow-lg shadow-slate-100'
+                              }`}
+                            >
+                              <Plus className="w-4 h-4" /> Tambah
+                            </button>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-            {filteredItems.length === 0 && (
-              <div className="col-span-full py-20 text-center space-y-3 opacity-20">
-                 <Search className="w-16 h-16 mx-auto text-slate-400" />
-                 <p className="font-black uppercase tracking-widest text-sm text-slate-500">Menu tidak ditemukan</p>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          ))}
+          {filteredItems.length === 0 && (
+            <div className="col-span-full py-20 text-center space-y-3 opacity-20">
+               <Search className="w-16 h-16 mx-auto text-slate-400" />
+               <p className="font-black uppercase tracking-widest text-sm text-slate-500">Menu tidak ditemukan</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {showSplash && (
@@ -367,7 +354,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
               <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Review Order</h2>
               <button onClick={() => setIsCartExpanded(false)} className="p-2 bg-slate-50 rounded-full"><ChevronDown className="w-6 h-6 text-slate-400" /></button>
             </div>
-            <div ref={formContainerRef} className="flex-1 overflow-y-auto p-8 space-y-8 pb-32">
+            <div ref={formContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 pb-40">
               <div className="space-y-3">
                 <label htmlFor="table-info" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pemesan</label>
                 <input 
@@ -378,7 +365,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
                   autoComplete="off" 
                   ref={tableInputRef}
                   onFocus={() => handleFocusScroll(tableInputRef)}
-                  className="w-full px-6 py-3 bg-slate-100 border-0 rounded-[1rem] focus:ring-2 focus:ring-emerald-500 text-xl font-black text-slate-800 placeholder:text-slate-200 uppercase" 
+                  className="w-full px-6 py-4 bg-slate-100 border-0 rounded-[1rem] focus:ring-2 focus:ring-emerald-500 text-xl font-black text-slate-800 placeholder:text-slate-200 uppercase" 
                   value={tableInfo} 
                   onChange={e => setTableInfo(e.target.value.toUpperCase())} 
                 />
@@ -411,14 +398,14 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
                   placeholder="Contoh: Sambal pisah, Tanpa es, ..." 
                   ref={notesInputRef}
                   onFocus={() => handleFocusScroll(notesInputRef)}
-                  className="w-full px-6 py-5 bg-slate-100 border-0 rounded-[1rem] text-sm h-32 resize-none" 
+                  className="w-full px-6 py-4 bg-slate-100 border-0 rounded-[1rem] text-sm h-24 resize-none" 
                   value={notes} 
                   onChange={e => setNotes(e.target.value)} 
                 />
               </div>
             </div>
-            <div className="p-6 bg-white/50 border-t border-slate-100 backdrop-blur-md">
-              <div className="flex justify-between items-end mb-6 px-2">
+            <div className="p-6 bg-white/80 border-t border-slate-100 backdrop-blur-md shrink-0">
+              <div className="flex justify-between items-end mb-4">
                 <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Total Bayar</span>
                 <span className="text-3xl font-black text-emerald-900 tracking-tighter">Rp {totalPrice.toLocaleString('id-ID')}</span>
               </div>
@@ -428,7 +415,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
         </div>
       </div>
 
-      <div className="hidden lg:flex w-[450px] bg-white border-l shadow-2xl flex-col h-full shrink-0 z-30">
+      <div className="hidden lg:flex w-[420px] bg-white border-l shadow-2xl flex-col h-full shrink-0 z-30">
         <div className="p-8 border-b flex items-center justify-between">
           <h2 className="font-black text-slate-800 text-2xl tracking-tighter uppercase flex items-center gap-3"><ShoppingCart className="w-7 h-7 text-emerald-600" /> Ringkasan Order</h2>
           <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{cart.length} Item</span>
@@ -461,7 +448,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
           </div>
           <div className="space-y-3">
             <label htmlFor="special-requests" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Catatan</label>
-            <textarea id="special-requests" name="special-requests" placeholder="Permintaan spesial..." className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-32 resize-none" value={notes} onChange={e => setNotes(e.target.value)} />
+            <textarea id="special-requests" name="special-requests" placeholder="Permintaan spesial..." className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-28 resize-none" value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
         </div>
         <div className="p-8 bg-emerald-50/50 border-t border-emerald-100 space-y-8">

@@ -50,8 +50,47 @@ const useSupabase = () => {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isConnected, setIsConnected] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const channelsRef = useRef<RealtimeChannel[]>([]);
     const isSubscribed = useRef(false);
+
+    const fetchFromSupabase = async () => {
+        if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) return;
+
+        try {
+            const [menuResult, userResult, orderResult] = await Promise.all([
+                supabase.from('menu_items').select('*').order('name'),
+                supabase.from('users').select('*'),
+                supabase.from('orders').select('*').order('created_at', { ascending: false })
+            ]);
+
+            if (menuResult.error || userResult.error || orderResult.error) return;
+
+            const newMappedMenu = (menuResult.data || []).map(mapMenuItem);
+            const newMappedUsers = (userResult.data || []).map(mapUser);
+            const newMappedOrders = (orderResult.data || []).map(mapOrder);
+
+            setData(prev => {
+                const menuChanged = JSON.stringify(prev.menuItems) !== JSON.stringify(newMappedMenu);
+                const usersChanged = JSON.stringify(prev.users) !== JSON.stringify(newMappedUsers);
+                const ordersChanged = JSON.stringify(prev.orders) !== JSON.stringify(newMappedOrders);
+                
+                if (!menuChanged && !usersChanged && !ordersChanged) {
+                    return prev;
+                }
+
+                return {
+                    orders: newMappedOrders,
+                    menuItems: newMappedMenu.length > 0 ? newMappedMenu : prev.menuItems,
+                    users: newMappedUsers.length > 0 ? newMappedUsers : prev.users
+                };
+            });
+            setLastUpdated(new Date());
+        } catch (err) {
+            console.error('Fetch error:', err);
+        }
+    };
 
     const fetchInitialData = async () => {
         if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) {
@@ -82,13 +121,12 @@ const useSupabase = () => {
             const mappedUsers = (userResult.data || []).map(mapUser);
             const mappedOrders = (orderResult.data || []).map(mapOrder);
 
-            setData(prev => ({
-                ...prev,
+            setData({
                 orders: mappedOrders,
                 menuItems: mappedMenu.length > 0 ? mappedMenu : INITIAL_MENU_ITEMS,
                 users: mappedUsers.length > 0 ? mappedUsers : INITIAL_USERS
-            }));
-
+            });
+            setLastUpdated(new Date());
             setLoading(false);
         } catch (err: any) {
             console.error("Gagal sinkronisasi Supabase:", err);
@@ -98,59 +136,65 @@ const useSupabase = () => {
     };
 
     const setupRealtimeSubscription = () => {
-        if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) return;
-        if (isSubscribed.current) return;
+        if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) {
+            console.log('⚠️ Supabase not configured');
+            return;
+        }
+        if (isSubscribed.current) {
+            console.log('⚠️ Already subscribed');
+            return;
+        }
         
         isSubscribed.current = true;
 
-        const subscription = supabase
-            .channel('app-changes')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'orders' },
-                (payload) => {
-                    if (payload.eventType === 'INSERT') {
-                        const newOrder = mapOrder(payload.new as Record<string, unknown>);
-                        setData(prev => ({
-                            ...prev,
-                            orders: [newOrder, ...prev.orders]
-                        }));
-                    } else if (payload.eventType === 'UPDATE') {
-                        const updatedOrder = mapOrder(payload.new as Record<string, unknown>);
-                        setData(prev => ({
-                            ...prev,
-                            orders: prev.orders.map(o => o.id === updatedOrder.id ? updatedOrder : o)
-                        }));
-                    } else if (payload.eventType === 'DELETE') {
-                        const deletedId = payload.old.id?.toString() || '';
-                        setData(prev => ({
-                            ...prev,
-                            orders: prev.orders.filter(o => o.id !== deletedId)
-                        }));
-                    }
-                }
-            )
-            .on(
-                'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'menu_items' },
-                (payload) => {
-                    const updatedItem = mapMenuItem(payload.new as Record<string, unknown>);
-                    setData(prev => ({
-                        ...prev,
-                        menuItems: prev.menuItems.map(m => m.id === updatedItem.id ? updatedItem : m)
-                    }));
-                }
-            )
-            .subscribe((status) => {
+        console.log('🔌 Connecting to Supabase realtime...');
+
+        const channel = supabase.channel('test-channel');
+        
+        channel
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'orders' 
+            }, (payload) => {
+                console.log('🎯 ORDER INSERT DETECTED!', payload);
+                fetchFromSupabase();
+            })
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'orders' 
+            }, (payload) => {
+                console.log('🎯 ORDER UPDATE DETECTED!', payload);
+                fetchFromSupabase();
+            })
+            .on('postgres_changes', { 
+                event: 'UPDATE', 
+                schema: 'public', 
+                table: 'menu_items' 
+            }, (payload) => {
+                console.log('🎯 MENU UPDATE DETECTED!', payload);
+                fetchFromSupabase();
+            })
+            .subscribe((status, err) => {
+                console.log('📻 Subscription status:', status, err);
                 if (status === 'SUBSCRIBED') {
-                    console.log('✅ Supabase subscription active');
+                    console.log('✅ Connected!');
+                    setIsConnected(true);
+                    
+                    // Verify subscription dengan test
+                    channel.track({ online_at: new Date().toISOString() })
+                        .then(() => console.log('✅ Presence tracked'))
+                        .catch(e => console.log('❌ Presence error:', e));
                 }
                 if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                    console.log('❌ Disconnected:', err);
                     isSubscribed.current = false;
+                    setIsConnected(false);
                 }
             });
 
-        channelsRef.current = [subscription];
+        channelsRef.current = [channel];
     };
 
     useEffect(() => {
@@ -170,7 +214,7 @@ const useSupabase = () => {
         }
     }, [loading]);
 
-    return { data, loading, error, fetchInitialData, isConnected: isSubscribed.current };
+    return { data, loading, error, refresh: fetchFromSupabase, isConnected, lastUpdated };
 };
 
 export default useSupabase;

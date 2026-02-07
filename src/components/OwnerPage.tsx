@@ -7,7 +7,7 @@ import {
   TrendingUp, Utensils, Plus, 
   LayoutDashboard, Edit3, Trash2, ShieldCheck, XCircle, Menu as HamburgerIcon, Calendar,
   ImageIcon, CheckCircle2, AlertCircle, Camera, Loader2, Upload, AlertTriangle, BarChart3,
-  ShoppingBag, Clock
+  ShoppingBag, Clock, RefreshCw
 } from 'lucide-react';
 import { SUPABASE_CONFIG } from '../constants';
 import ChartContainer from './ChartContainer';
@@ -18,6 +18,8 @@ interface OwnerPageProps {
   setMenuItems: React.Dispatch<React.SetStateAction<MenuItem[]>>;
   users: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
+  onRefresh?: () => void;
+  isConnected?: boolean;
 }
 
 type TabMode = 'Dashboard' | 'Menu' | 'Users' | 'Orders';
@@ -30,9 +32,10 @@ const STATUS_CONFIG = {
   [OrderStatus.PAID]: { label: 'Paid', color: 'slate', icon: '💰' }
 } as const;
 
-const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, users, setUsers }) => {
+const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, users, setUsers, onRefresh, isConnected }) => {
   const [activeTab, setActiveTab] = useState<TabMode>('Dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Partial<MenuItem> | null>(null);
   const [editingUser, setEditingUser] = useState<Partial<User> | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -63,6 +66,13 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       return orderDate >= dateRange.start && orderDate <= dateRange.end;
     });
   }, [orders, dateRange]);
+
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    await onRefresh();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const liveStats = {
     new: orders.filter(o => o.status === OrderStatus.NEW_ORDER).length,
@@ -424,9 +434,20 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
     <div className="h-full bg-slate-50 flex flex-col overflow-hidden relative">
       {/* Mobile Nav Header */}
       <div className="lg:hidden p-4 bg-white border-b flex items-center justify-between sticky top-0 z-40 shadow-sm">
-        <button onClick={() => setIsMobileNavOpen(true)} className="p-2 bg-slate-50 rounded-xl"><HamburgerIcon className="w-5 h-5 text-slate-600" /></button>
-        <span className="font-black text-xs uppercase tracking-widest text-emerald-800">Owner Terminal</span>
-        <div className="w-9" />
+        <div className="flex items-center gap-2">
+          <button onClick={() => setIsMobileNavOpen(true)} className="p-2 bg-slate-50 rounded-xl"><HamburgerIcon className="w-5 h-5 text-slate-600" /></button>
+          <span className="font-black text-xs uppercase tracking-widest text-emerald-800">Owner Terminal</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={`p-2 rounded-xl transition-all ${isRefreshing ? 'bg-slate-100' : 'bg-slate-50 hover:bg-emerald-50'}`}
+          >
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-emerald-600' : 'text-slate-400'}`} />
+          </button>
+          <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-slate-300'}`} title={isConnected ? 'Connected' : 'Offline'} />
+        </div>
       </div>
 
       {/* Mobile Nav Overlay */}
@@ -456,6 +477,19 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
               <item.icon className="w-4 h-4" /> {item.label}
             </button>
           ))}
+        </div>
+        <div className="flex-1 flex justify-end items-center gap-4 py-3">
+          <button 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+              isRefreshing ? 'bg-slate-100 text-slate-400' : 'bg-slate-50 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
+            }`}
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Syncing...' : 'Refresh'}
+          </button>
+          <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} title={isConnected ? 'Realtime Connected' : 'Offline'} />
         </div>
       </div>
 
