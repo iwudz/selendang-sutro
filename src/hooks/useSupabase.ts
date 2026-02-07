@@ -35,7 +35,7 @@ const mapOrder = (o: Record<string, unknown>): Order => ({
     status: (o.status as OrderStatus) || OrderStatus.NEW_ORDER,
     totalPrice: (o.total_price as number) || 0,
     createdAt: o.created_at ? new Date(o.created_at as string).getTime() : Date.now(),
-    verifiedAt: o.verified_at ? new Date(o.verified_at as string).getTime() : undefined,
+    cookingAt: o.cooking_at ? new Date(o.cooking_at as string).getTime() : undefined,
     servedAt: o.served_at ? new Date(o.served_at as string).getTime() : undefined,
     paidAt: o.paid_at ? new Date(o.paid_at as string).getTime() : undefined,
     waiterId: (o.waiter_id as string) || '',

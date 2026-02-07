@@ -54,7 +54,7 @@ export interface Order {
   status: OrderStatus;
   totalPrice: number;
   createdAt: number;
-  verifiedAt?: number;
+  cookingAt?: number;
   servedAt?: number;
   paidAt?: number;
   waiterId: string;

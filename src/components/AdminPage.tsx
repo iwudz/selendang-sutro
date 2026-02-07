@@ -5,9 +5,14 @@ import { OrderStatus, PaymentMethod } from '../types';
 import { usePagination } from '../hooks/usePagination';
 import {
   CookingPot, HandPlatter, Banknote, QrCode, X,
-  Bell, AlertTriangle, Check, PackageSearch, ChevronDown,
+  Bell, AlertTriangle, Check, PackageSearch,
   Edit3, Trash2, ChevronLeft, ChevronRight
 } from 'lucide-react';
+
+const CATEGORY_GROUPS_ADMIN = [
+  { id: 'makanan', label: 'MAKANAN', categories: ['Menu Utama', 'Camilan'], color: 'amber' },
+  { id: 'minuman', label: 'MINUMAN', categories: ['Minuman Dingin', 'Minuman Panas'], color: 'blue' }
+];
 
 interface AdminPageProps {
   orders: Order[];
@@ -22,8 +27,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
   const [showQrisFullScreen, setShowQrisFullScreen] = useState(false);
   const [showStockManager, setShowStockManager] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -127,7 +130,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{order.tableNumber}</h3>
-                  <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase">Antrian: {new Date(order.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase">Order: {new Date(order.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</p>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border flex items-center gap-1.5 ${order.status === OrderStatus.NEW_ORDER ? 'bg-amber-100 text-amber-800 border-amber-200 animate-blink' :
                   order.status === OrderStatus.COOKING ? 'bg-blue-100 text-blue-800 border-blue-200' :
@@ -237,98 +240,79 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
         </div>
       )}
 
-      {/* Stock Manager Modal */}
+{/* Stock Manager Modal */}
       {showStockManager && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-4xl shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in-95">
-            <div className="p-6 border-b flex justify-between items-center">
-              <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight leading-none">Status Stok</h3>
-              <button onClick={() => setShowStockManager(false)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-300" /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto bg-slate-50">
-              {/* Category Filter with Hamburger Menu */}
-              <div className="p-4 border-b border-slate-200 bg-white">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase">Kategori:</span>
-                  <button
-                    onClick={() => setShowCategoryFilter(!showCategoryFilter)}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-between transition-all"
-                  >
-                    {selectedCategory}
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showCategoryFilter ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
-
-                {/* Category Dropdown */}
-                {showCategoryFilter && (
-                  <div className="mt-2 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-1">
-                    <button
-                      onClick={() => {
-                        setSelectedCategory('Semua');
-                        setShowCategoryFilter(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-xs font-bold transition-all ${selectedCategory === 'Semua' ? 'bg-emerald-100 text-emerald-700' : 'text-slate-700 hover:bg-slate-50'}`}
-                    >
-                      Semua
-                    </button>
-                    {Array.from(new Set(menuItems.map(item => item.category))).map(category => (
-                      <button
-                        key={category}
-                        onClick={() => {
-                          setSelectedCategory(category);
-                          setShowCategoryFilter(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left text-xs font-bold transition-all ${selectedCategory === category ? 'bg-blue-100 text-blue-700' : 'text-slate-700 hover:bg-slate-50'}`}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            <div className="p-6 border-b flex justify-between items-center bg-gradient-to-r from-emerald-600 to-emerald-500">
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-tight leading-none">Kelola Stok</h3>
+                <p className="text-xs text-emerald-100 mt-1">Ketuk menu untuk toggle</p>
               </div>
-
-              {/* Menu List */}
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-3">
-                  {menuItems
-                    .filter(item => selectedCategory === 'Semua' || item.category === selectedCategory)
-                    .map(item => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          onToggleSoldOut(item.id);
-                        }}
-                        className={`group relative overflow-hidden rounded-lg border transition-all duration-200 p-2 flex flex-col items-center justify-center gap-2 bg-white aspect-square ${item.isSoldOut
-                          ? 'border-gray-200 bg-gray-50/50 hover:bg-gray-50 shadow-[0_2px_4px_rgba(107,114,128,0.1)]'
-                          : 'border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 shadow-sm hover:shadow-[0_2px_4px_rgba(16,185,129,0.1)]'
+              <button onClick={() => setShowStockManager(false)} className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all">
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto bg-slate-50">
+              {CATEGORY_GROUPS_ADMIN.map(({ id, label, categories, color }) => {
+                const groupItems = menuItems.filter(item => categories.includes(item.category));
+                if (groupItems.length === 0) return null;
+                
+                return (
+                  <div key={id} className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest bg-${color}-100 text-${color}-700`}>
+                        {label}
+                      </div>
+                      <div className="h-px bg-slate-200 flex-1" />
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      {groupItems.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => onToggleSoldOut(item.id)}
+                          className={`group relative overflow-hidden rounded-xl border transition-all duration-200 p-2 flex flex-col items-center gap-1 bg-white aspect-square ${
+                            item.isSoldOut 
+                              ? 'border-slate-200 bg-slate-50 grayscale-[0.3]' 
+                              : `border-${color}-200 hover:border-${color}-400 bg-${color}-50/30`
                           }`}
-                      >
-                        <div className="w-full aspect-square rounded-md overflow-hidden bg-slate-100 relative">
-                          <img
-                            src={item.image}
-                            className={`w-full h-full object-cover transition-all duration-200 ${item.isSoldOut ? 'grayscale opacity-50' : 'group-hover:scale-105'
-                              }`}
-                          />
-                          <div className={`w-2.5 h-2.5 rounded-full transition-all duration-200 absolute top-1 right-1 ${item.isSoldOut ? 'bg-red-500 ring-1 ring-red-200' : 'bg-emerald-500 ring-1 ring-emerald-200'
-                            }`} />
-                        </div>
-
-                        <div className="text-center flex-1 flex flex-col justify-center">
-                          <p className="text-[10px] font-bold leading-tight text-slate-800 group-hover:text-slate-900 transition-colors line-clamp-2 uppercase">
+                        >
+                          <div className="w-full aspect-square rounded-lg overflow-hidden bg-slate-100 relative">
+                            <img
+                              src={item.image}
+                              className={`w-full h-full object-cover transition-all duration-200 ${item.isSoldOut ? 'grayscale opacity-50' : 'group-hover:scale-110'}`}
+                            />
+                            {item.isSoldOut && (
+                              <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                                <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase">HABIS</span>
+                              </div>
+                            )}
+                          </div>
+                          <p className={`text-[9px] font-bold leading-tight text-center line-clamp-2 uppercase ${
+                            item.isSoldOut ? 'text-slate-400' : 'text-slate-700'
+                          }`}>
                             {item.name}
                           </p>
-                        </div>
-                      </button>
-                    ))}
-                </div>
-
-                {menuItems.filter(item => selectedCategory === 'Semua' || item.category === selectedCategory).length === 0 && (
-                  <div className="text-center py-8 text-slate-400">
-                    <PackageSearch className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${
+                            item.isSoldOut ? 'bg-red-500' : `bg-${color}-500`
+                          }`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {menuItems.length === 0 && (
+                <div className="flex-1 flex items-center justify-center text-slate-400">
+                  <div className="text-center">
+                    <PackageSearch className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-xs font-bold uppercase">Tidak ada menu</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -348,7 +332,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-4xl p-6 font-mono text-xs text-slate-600">
                 <div className="flex justify-between mb-4 border-b border-slate-200 pb-2">
                   <span className="font-bold uppercase">{selectedOrderForPayment.tableNumber}</span>
-                  <span>{new Date(selectedOrderForPayment.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>Order: {new Date(selectedOrderForPayment.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</span>
                 </div>
                 <div className="space-y-3 mb-4">
                   {selectedOrderForPayment.items.map(item => (

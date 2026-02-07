@@ -7,7 +7,7 @@ import { api } from './services/api';
 import PinEntry from './components/PinEntry';
 import type { PinEntryRef } from './components/PinEntry';
 import WaiterPage from './components/WaiterPage';
-import { LogOut, Soup, Wifi, WifiOff } from 'lucide-react';
+import { LogOut, Soup } from 'lucide-react';
 import { SUPABASE_CONFIG } from './constants';
 import { lazy, Suspense } from 'react';
 
@@ -39,7 +39,7 @@ const App: React.FC = () => {
   const AdminPageLazy = lazy(() => import('./components/AdminPage'));
   const OwnerPageLazy = lazy(() => import('./components/OwnerPage'));
 
-  const { loading, error, data: supabaseData, refresh, isConnected, lastUpdated } = useSupabase();
+  const { loading, error, data: supabaseData, isConnected } = useSupabase();
 
   useEffect(() => {
     if (supabaseData) {
@@ -48,14 +48,6 @@ const App: React.FC = () => {
       setUsers(supabaseData.users);
     }
   }, [supabaseData]);
-
-  const formatLastUpdated = () => {
-    if (!lastUpdated) return 'Belum sync';
-    const seconds = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
-    if (seconds < 5) return 'Just now';
-    if (seconds < 60) return `${seconds}s ago`;
-    return `${Math.floor(seconds / 60)}m ago`;
-  };
 
   const handleLogin = (pin: string) => {
     const user = users.find(u => u.pin === pin);
@@ -85,7 +77,14 @@ const App: React.FC = () => {
   };
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus, paymentMethod?: PaymentMethod) => {
-    setOrders(prev => prev.map(order => order.id === orderId ? { ...order, status, paymentMethod } : order));
+    const now = Date.now();
+    const updateData: Partial<Order> = { status, paymentMethod };
+    
+    if (status === OrderStatus.COOKING) updateData.cookingAt = now;
+    if (status === OrderStatus.SERVED) updateData.servedAt = now;
+    if (status === OrderStatus.PAID) updateData.paidAt = now;
+    
+    setOrders(prev => prev.map(order => order.id === orderId ? { ...order, ...updateData } : order));
 
     try {
       await api.orders.updateStatus(orderId, status, paymentMethod);
@@ -149,23 +148,13 @@ const App: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             {isConnected && SUPABASE_CONFIG.URL ? (
-              <div className="flex flex-col items-start">
-                <span className="flex items-center gap-1 text-emerald-400 text-xs">
-                  <Wifi className="w-3 h-3" /> Online
-                </span>
-                <span className="text-[9px] text-emerald-500/60">{formatLastUpdated()}</span>
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} title="Connected" />
               </div>
             ) : !SUPABASE_CONFIG.URL ? (
-              <div className="flex flex-col items-start">
-                <span className="flex items-center gap-1 text-blue-400 text-xs">
-                  <Wifi className="w-3 h-3" /> Local
-                </span>
-                <span className="text-[9px] text-blue-400/60">{formatLastUpdated()}</span>
-              </div>
+              <span className="text-[10px] text-blue-400">Local</span>
             ) : (
-              <span className="flex items-center gap-1 text-slate-400 text-xs">
-                <WifiOff className="w-3 h-3" /> Offline
-              </span>
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-300" title="Offline" />
             )}
           </div>
           <div className="text-right hidden sm:block">
@@ -209,8 +198,6 @@ const App: React.FC = () => {
               setMenuItems={setMenuItems}
               users={users}
               setUsers={setUsers}
-              onRefresh={refresh}
-              isConnected={isConnected}
             />
           </Suspense>
         )}
