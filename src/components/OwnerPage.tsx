@@ -390,18 +390,18 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-8 pb-32">
         {activeTab === 'Dashboard' && (
           <div className="animate-in fade-in duration-500 space-y-6">
-            <div className="bg-slate-900 p-6 rounded-2xl text-white shadow-2xl grid grid-cols-3 divide-x divide-white/10">
+            <div className="bg-slate-900/50 p-6 rounded-2xl text-white shadow-2xl grid grid-cols-3 divide-x divide-white/10">
               <div className="flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] font-black uppercase text-white/40 tracking-widest mb-1">New Order</span>
-                <span className="text-4xl font-black text-amber-400 leading-none">{liveStats.new}</span>
+                <span className="text-[9px] font-black uppercase text-white/80 tracking-widest mb-1">New Order</span>
+                <span className="text-4xl font-black text-amber-500 leading-none">{liveStats.new}</span>
               </div>
               <div className="flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] font-black uppercase text-white/40 tracking-widest mb-1">Cooking</span>
+                <span className="text-[9px] font-black uppercase text-white/80 tracking-widest mb-1">Cooking</span>
                 <span className="text-4xl font-black text-blue-400 leading-none">{liveStats.cook}</span>
               </div>
               <div className="flex flex-col items-center justify-center text-center">
-                <span className="text-[9px] font-black uppercase text-white/40 tracking-widest mb-1">Served</span>
-                <span className="text-4xl font-black text-emerald-400 leading-none">{liveStats.served}</span>
+                <span className="text-[9px] font-black uppercase text-white/80 tracking-widest mb-1">Served</span>
+                <span className="text-4xl font-black text-emerald-500 leading-none">{liveStats.served}</span>
               </div>
             </div>
 
@@ -464,13 +464,13 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
                     <div key={menu.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
-                          index === 0 ? 'bg-yellow-400 text-white' : index === 1 ? 'bg-gray-300 text-white' : 'bg-amber-600 text-white'
+                          index === 0 ? 'bg-green-400 text-white' : index === 1 ? 'bg-yellow-400 text-white' : 'bg-amber-600 text-white'
                         }`}>
                           {index + 1}
                         </div>
                         <div>
                           <p className="text-sm font-black text-slate-800">{menu.name}</p>
-                          <p className="text-[10px] text-slate-500">Terjual: {menu.count} pcs</p>
+                          <p className="text-[10px] text-slate-500">Terjual: {menu.count} porsi</p>
                         </div>
                       </div>
                       <p className="text-sm font-black text-emerald-800">Rp {menu.total.toLocaleString('id-ID')}</p>
@@ -487,7 +487,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
 
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
               <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest mb-4 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-blue-600" /> Jam Peak Pesanan
+                <BarChart3 className="w-4 h-4 text-blue-600" /> Peak Hour
               </h3>
               <ChartContainer height={192} minWidth={250} minHeight={150}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -508,7 +508,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
                   <TrendingUp className="w-4 h-4 text-emerald-600" /> Analisa Pelayanan
                 </h3>
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                  {[5, 10, 15, 20].map(limit => (
+                  {[7, 11, 21, 33].map(limit => (
                     <button key={limit} onClick={() => setServiceRowLimit(limit)} className={`px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all ${serviceRowLimit === limit ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{limit}</button>
                   ))}
                 </div>
@@ -682,9 +682,9 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
 
         {activeTab === 'Menu' && (
           <div className="animate-in fade-in duration-500 space-y-6">
-            <div className="flex justify-between items-center px-2">
+            <div className="flex justify-between items-center px-4">
               <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Manajemen Menu</h2>
-              <button onClick={() => setEditingMenu({ name: '', price: 0, category: 'Menu Utama', image: '', isSoldOut: false })} className="bg-emerald-600 text-white p-4 rounded-3xl shadow-xl active:scale-95 transition-all">
+              <button onClick={() => setEditingMenu({ name: '', price: 0, category: 'Menu Utama', image: '', isSoldOut: false })} className="bg-emerald-600/80 text-white p-4 rounded-2xl shadow-xl active:scale-95 transition-all">
                 <Plus className="w-6 h-6" />
               </button>
             </div>
@@ -716,7 +716,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
                           <h4 className="text-xs font-black text-slate-800 uppercase line-clamp-1 mb-1 tracking-tight">{item.name}</h4>
                           <div className="flex justify-between items-center">
                             <p className="text-[10px] font-bold text-slate-400 tracking-widest">Rp {item.price.toLocaleString('id-ID')}</p>
-                            <button onClick={() => toggleStatus(item.id)} className={`text-[8px] font-black uppercase px-2 py-1 rounded-md border transition-all flex items-center gap-1 ${
+                            <button onClick={(e) => { e.stopPropagation(); toggleStatus(item.id); }} className={`text-[8px] font-black uppercase px-2 py-1 rounded-md border transition-all flex items-center gap-1 ${
                               item.isSoldOut ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                             }`}>
                               {item.isSoldOut ? <AlertCircle className="w-2.5 h-2.5" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
@@ -739,9 +739,9 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
 
         {activeTab === 'Users' && (
           <div className="animate-in fade-in duration-500 space-y-6">
-            <div className="flex justify-between items-center px-2">
+            <div className="flex justify-between items-center px-4">
               <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Manajemen User</h2>
-              <button onClick={() => setEditingUser({ name: '', role: UserRole.WAITER, pin: '' })} className="bg-blue-600 text-white p-4 rounded-3xl shadow-xl active:scale-95 transition-all">
+              <button onClick={() => setEditingUser({ name: '', role: UserRole.WAITER, pin: '' })} className="bg-blue-600/80 text-white p-4 rounded-2xl shadow-xl active:scale-95 transition-all">
                 <Plus className="w-6 h-6" />
               </button>
             </div>

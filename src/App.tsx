@@ -176,10 +176,11 @@ const App: React.FC = () => {
             currentUser={currentUser}
             onSendOrder={addOrder}
             menuItems={menuItems}
+            orders={orders}
           />
         )}
         {currentUser.role === UserRole.ADMIN && (
-          <Suspense fallback={<div>Loading Admin Page...</div>}>
+          <Suspense fallback={<div>Admin Klinting Full ...</div>}>
             <AdminPageLazy
               orders={orders}
               onUpdateStatus={updateOrderStatus}
@@ -191,7 +192,7 @@ const App: React.FC = () => {
           </Suspense>
         )}
         {currentUser.role === UserRole.OWNER && (
-          <Suspense fallback={<div>Loading Owner Page...</div>}>
+          <Suspense fallback={<div>Klinting Juragan ...</div>}>
             <OwnerPageLazy
               orders={orders}
               menuItems={menuItems}

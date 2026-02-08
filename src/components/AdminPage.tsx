@@ -26,6 +26,7 @@ interface AdminPageProps {
 const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems, onToggleSoldOut, onCancelOrder, onUpdateOrder }) => {
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
   const [showQrisFullScreen, setShowQrisFullScreen] = useState(false);
+  const [showReceipt, setShowReceipt] = useState<Order | null>(null);
   const [showStockManager, setShowStockManager] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
@@ -53,7 +54,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
   const finalizePayment = (method: PaymentMethod) => {
     if (selectedOrderForPayment) {
+      const paidOrder = { ...selectedOrderForPayment, status: OrderStatus.PAID, paymentMethod: method };
       onUpdateStatus(selectedOrderForPayment.id, OrderStatus.PAID, method);
+      setShowReceipt(paidOrder);
       setSelectedOrderForPayment(null);
       setShowQrisFullScreen(false);
     }
@@ -186,14 +189,24 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
                   </div>
                 )}
                 {order.status === OrderStatus.COOKING && (
-                  <button onClick={() => onUpdateStatus(order.id, OrderStatus.SERVED)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                    <HandPlatter className="w-4 h-4" /> SELESAI MASAK
-                  </button>
+                  <div className="space-y-2">
+                    <button onClick={() => handleEditOrder(order)} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200">
+                      <Edit3 className="w-4 h-4" /> EDIT
+                    </button>
+                    <button onClick={() => onUpdateStatus(order.id, OrderStatus.SERVED)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                      <HandPlatter className="w-4 h-4" /> SELESAI MASAK
+                    </button>
+                  </div>
                 )}
                 {order.status === OrderStatus.SERVED && (
-                  <button onClick={() => setSelectedOrderForPayment(order)} className="w-full py-4 bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                    <Banknote className="w-4 h-4" /> PROSES BAYAR
-                  </button>
+                  <div className="space-y-2">
+                    <button onClick={() => handleEditOrder(order)} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200">
+                      <Edit3 className="w-4 h-4" /> EDIT
+                    </button>
+                    <button onClick={() => setSelectedOrderForPayment(order)} className="w-full py-4 bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                      <Banknote className="w-4 h-4" /> PROSES BAYAR
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -244,7 +257,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
       {showStockManager && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-4xl shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in-95">
-            <div className="p-6 border-b flex justify-between items-center bg-gradient-to-r from-emerald-600 to-emerald-500">
+            <div className="p-6 border-b flex justify-between items-center bg-linear-to-r from-emerald-600 to-emerald-500">
               <div>
                 <h3 className="text-lg font-black text-white uppercase tracking-tight leading-none">Kelola Stok</h3>
                 <p className="text-xs text-emerald-100 mt-1">Ketuk menu untuk toggle</p>
@@ -382,7 +395,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
             </div>
             <div className="p-6 space-y-6">
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nomor Meja</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pemesan</p>
                 <p className="text-xl font-black text-slate-800">{editingOrder.tableNumber}</p>
               </div>
 
@@ -501,6 +514,53 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
                 <Check className="w-5 h-5" /> KONFIRMASI BAYAR
               </button>
               <button onClick={() => setShowQrisFullScreen(false)} className="py-4 text-slate-400 font-bold uppercase text-[10px]">Kembali</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReceipt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white w-full max-w-[280px] rounded-xl shadow-2xl overflow-hidden">
+            <div className="bg-slate-900 p-3 text-center">
+              <h2 className="font-black text-white text-sm uppercase tracking-widest">SELENDANG SUTRO</h2>
+              <p className="text-[9px] text-slate-400">Jl. Sutro No. 1</p>
+            </div>
+            <div className="p-4 space-y-2 text-[10px]">
+              <div className="flex justify-between border-b border-dashed border-slate-200 pb-2">
+                <span>Pemesan</span>
+                <span className="font-bold">{showReceipt.tableNumber}</span>
+              </div>
+              <div className="flex justify-between border-b border-dashed border-slate-200 pb-2">
+                <span>Waktu</span>
+                <span>{new Date(showReceipt.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <div className="border-b border-dashed border-slate-200 pb-2">
+                <p className="font-bold mb-1">Pesanan:</p>
+                {showReceipt.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between">
+                    <span>{item.quantity}x {item.menuItem.name}</span>
+                    <span>Rp {(item.menuItem.price * item.quantity).toLocaleString('id-ID')}</span>
+                  </div>
+                ))}
+              </div>
+              {showReceipt.notes && (
+                <div className="border-b border-dashed border-slate-200 pb-2">
+                  <p className="font-bold">Catatan: {showReceipt.notes}</p>
+                </div>
+              )}
+              <div className="flex justify-between pt-2">
+                <span className="font-bold">TOTAL</span>
+                <span className="font-bold text-emerald-600">Rp {showReceipt.totalPrice.toLocaleString('id-ID')}</span>
+              </div>
+              <div className="text-center pt-3 text-[9px] text-slate-400">
+                <p>Terima kasih</p>
+                <p>{new Date().toLocaleDateString('id-ID')}</p>
+              </div>
+            </div>
+            <div className="bg-slate-50 p-3 flex gap-2">
+              <button onClick={() => window.print()} className="flex-1 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-[10px] uppercase">CETAK</button>
+              <button onClick={() => setShowReceipt(null)} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg font-bold text-[10px] uppercase">TUTUP</button>
             </div>
           </div>
         </div>

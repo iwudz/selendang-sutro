@@ -8,6 +8,7 @@ interface WaiterPageProps {
   currentUser: User;
   onSendOrder: (order: Order) => void;
   menuItems: MenuItem[];
+  orders: Order[];
 }
 
 const CATEGORIES: ('All' | MenuCategory)[] = ['All', 'Menu Utama', 'Camilan', 'Minuman Dingin', 'Minuman Panas'];
@@ -24,7 +25,7 @@ const CATEGORY_GROUPS = [
   { id: 'minuman', label: 'MINUMAN', categories: ['Minuman Dingin', 'Minuman Panas'] }
 ];
 
-const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuItems }) => {
+const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuItems, orders }) => {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [tableInfo, setTableInfo] = useState('');
   const [notes, setNotes] = useState('');
@@ -34,11 +35,15 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [zoomImage, setZoomImage] = useState<MenuItem | null>(null);
   const [showSplash, setShowSplash] = useState(false);
+  const [showMasakanSiap, setShowMasakanSiap] = useState(false);
+  const [masakanSiapTable, setMasakanSiapTable] = useState('');
   const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
   const categoryMenuRef = useRef<HTMLDivElement>(null);
   const tableInputRef = useRef<HTMLInputElement>(null);
   const notesInputRef = useRef<HTMLTextAreaElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastServedOrderRef = useRef<string>('');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -49,6 +54,25 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    
+    const servedOrders = orders.filter(o => 
+      o.status === OrderStatus.SERVED && 
+      o.waiterId === currentUser.id &&
+      o.id !== lastServedOrderRef.current
+    );
+    
+    if (servedOrders.length > 0) {
+      const latestServed = servedOrders[0];
+      lastServedOrderRef.current = latestServed.id;
+      setMasakanSiapTable(latestServed.tableNumber);
+      setShowMasakanSiap(true);
+      audioRef.current.play().catch(() => {});
+      setTimeout(() => setShowMasakanSiap(false), 5000);
+    }
+  }, [orders, currentUser.id]);
 
   const handleFocusScroll = useCallback((ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>) => {
     if (ref.current && formContainerRef.current) {
@@ -273,7 +297,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
                                 item.isSoldOut ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-700/60 text-white hover:bg-emerald-600 shadow-lg shadow-slate-100'
                               }`}
                             >
-                              <Plus className="w-4 h-4" /> Tambah
+                              <Plus className="w-4 h-4" /> Order
                             </button>
                           )}
                         </div>
@@ -302,6 +326,17 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
               </div>
               <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">Order SEND</h2>
               <p className="text-emerald-600 font-bold text-sm uppercase tracking-widest">Pesanan terkirim</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMasakanSiap && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[300] flex items-start justify-center pt-20">
+          <div className="border-4 border-red-500 rounded-3xl p-8 animate-pulse bg-white/90 shadow-2xl">
+            <div className="text-center">
+              <h2 className="text-4xl font-black text-red-600 uppercase tracking-tighter animate-bounce">MASAKAN SIAP</h2>
+              <p className="text-xl font-bold text-slate-700 mt-2">Meja: {masakanSiapTable}</p>
             </div>
           </div>
         </div>
