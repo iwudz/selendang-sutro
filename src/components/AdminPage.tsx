@@ -520,8 +520,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
       )}
 
       {showReceipt && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-[280px] rounded-xl shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-200 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white w-full max-w-70 rounded-xl shadow-2xl overflow-hidden">
             <div className="bg-slate-900 p-3 text-center">
               <h2 className="font-black text-white text-sm uppercase tracking-widest">SELENDANG SUTRO</h2>
               <p className="text-[9px] text-slate-400">Jl. Sutro No. 1</p>

@@ -356,7 +356,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       </div>
 
       {isMobileNavOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] lg:hidden" onClick={() => setIsMobileNavOpen(false)}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 lg:hidden" onClick={() => setIsMobileNavOpen(false)}>
           <div className="bg-white w-72 h-full p-8 flex flex-col animate-in slide-in-from-left duration-300" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-10">
               <h2 className="font-black text-emerald-900 text-lg uppercase leading-none tracking-tighter">Delights POS</h2>
@@ -703,7 +703,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {groupItems.map(item => (
                       <div key={item.id} className={`bg-white rounded-xl border border-slate-100 p-4 shadow-sm relative group flex flex-col ${item.isSoldOut ? 'opacity-60 grayscale-[0.3]' : ''}`}>
-                        <div className="aspect-[4/3] rounded-lg overflow-hidden mb-3 relative bg-slate-50 border border-slate-100 shadow-inner">
+                        <div className="aspect-4/3 rounded-lg overflow-hidden mb-3 relative bg-slate-50 border border-slate-100 shadow-inner">
                           <img src={item.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" />
                           {item.isSoldOut && (
                             <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
@@ -767,7 +767,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       </div>
 
       {editingMenu && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-200 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl p-6 space-y-5 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <h3 className="font-black text-slate-800 uppercase tracking-tight text-center flex-1">Data Menu</h3>
@@ -776,7 +776,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Foto Menu</label>
-                <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200">
+                <div className="relative aspect-4/3 rounded-lg overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200">
                   {editingMenu.image ? (
                     <img src={editingMenu.image} className="w-full h-full object-cover" />
                   ) : (
@@ -793,11 +793,11 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
               </div>
               <div className="relative">
                 <input id="menu-name" type="text" placeholder=" " className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm tracking-tight peer" value={editingMenu.name} onChange={e => setEditingMenu({...editingMenu, name: toTitleCase(e.target.value)})} />
-                <label htmlFor="menu-name" className="absolute left-5 top-4 text-[10px] font-black text-slate-400 uppercase tracking-widest transition-all pointer-events-none peer-focus:-top-2 peer-focus:bg-white peer-focus:px-1 peer-focus:text-emerald-600 peer-[&:not(:placeholder-shown)]:-top-2 peer-[&:not(:placeholder-shown)]:bg-white peer-[&:not(:placeholder-shown)]:px-1 peer-[&:not(:placeholder-shown)]:text-emerald-600">Nama Menu</label>
+                <label htmlFor="menu-name" className="absolute left-5 top-4 text-[10px] font-black text-slate-400 uppercase tracking-widest transition-all pointer-events-none peer-focus:-top-2 peer-focus:bg-white peer-focus:px-1 peer-focus:text-emerald-600 peer-not-placeholder-shown:-top-2 peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:px-1 peer-not-placeholder-shown:text-emerald-600">Nama Menu</label>
               </div>
               <div className="relative">
                 <input id="menu-price" type="number" placeholder=" " className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none font-black text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none peer" value={editingMenu.price === 0 ? '' : editingMenu.price} onChange={e => setEditingMenu({...editingMenu, price: e.target.value === '' ? 0 : parseInt(e.target.value)})} />
-                <label htmlFor="menu-price" className="absolute left-5 top-4 text-[10px] font-black text-slate-400 uppercase tracking-widest transition-all pointer-events-none peer-focus:-top-2 peer-focus:bg-white peer-focus:px-1 peer-focus:text-emerald-600 peer-[&:not(:placeholder-shown)]:-top-2 peer-[&:not(:placeholder-shown)]:bg-white peer-[&:not(:placeholder-shown)]:px-1 peer-[&:not(:placeholder-shown)]:text-emerald-600">Harga (Rp)</label>
+                <label htmlFor="menu-price" className="absolute left-5 top-4 text-[10px] font-black text-slate-400 uppercase tracking-widest transition-all pointer-events-none peer-focus:-top-2 peer-focus:bg-white peer-focus:px-1 peer-focus:text-emerald-600 peer-not-placeholder-shown:-top-2 peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:px-1 peer-not-placeholder-shown:text-emerald-600">Harga (Rp)</label>
               </div>
               <div className="space-y-1">
                 <label htmlFor="menu-category" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kategori</label>
@@ -829,7 +829,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       )}
 
       {editingUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-200 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl p-6 space-y-5">
             <div className="flex justify-between items-center">
               <h3 className="font-black text-slate-800 uppercase tracking-tight text-center flex-1">Data User</h3>
@@ -859,7 +859,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       )}
 
       {deleteModal && (
-        <div className="fixed inset-0 bg-red-900/80 backdrop-blur-sm z-[300] flex items-center justify-center p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-red-900/80 backdrop-blur-sm z-300 flex items-center justify-center p-6 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl p-6 flex flex-col items-center text-center animate-in zoom-in-95">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <AlertTriangle className="w-8 h-8 text-red-600" />
