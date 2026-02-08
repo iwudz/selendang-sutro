@@ -640,9 +640,6 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-black text-lg text-slate-800 uppercase">{order.tableNumber}</p>
-                              <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-600">
-                                ✓ Lunas
-                              </span>
                             </div>
                             <div className="flex items-center gap-1 mt-1 text-slate-400">
                               <span className="text-[10px] font-bold">{orderDate}</span>

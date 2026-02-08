@@ -75,6 +75,10 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
     }
   }, [orders, currentUser]);
 
+  const toTitleCase = (str: string) => {
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   const handleFocusScroll = useCallback((ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>) => {
     if (ref.current && formContainerRef.current) {
       const element = ref.current;
@@ -320,9 +324,9 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
 
       {showSplash && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-300 flex items-center justify-center">
-          <div className="bg-white rounded-3xl p-12 shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95">
+          <div className="bg-white rounded-3xl p-12 shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-90 duration-200">
             <div className="text-center space-y-6">
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce duration-500">
                 <Send className="w-10 h-10 text-emerald-600" />
               </div>
               <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">Order SEND</h2>
@@ -334,10 +338,10 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
 
       {showMasakanSiap && (
         <div className="fixed inset-0 bg-black/10 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="border-4 border-red-500 rounded-full px-12 py-8 animate-pulse bg-white shadow-2xl">
+          <div className="border-4 border-red-500 rounded-full px-12 py-8 animate-pulse duration-700 bg-white shadow-2xl">
             <div className="text-center">
               <h2 className="text-3xl font-black text-red-600 uppercase tracking-tighter">MASAKAN SIAP</h2>
-              <p className="text-lg font-bold text-slate-700 mt-1">Meja {masakanSiapTable}</p>
+              <p className="text-lg font-bold text-slate-700 mt-1">Nama {masakanSiapTable}</p>
             </div>
           </div>
         </div>
@@ -484,7 +488,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
           </div>
           <div className="space-y-3">
             <label htmlFor="special-requests" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Catatan</label>
-            <textarea id="special-requests" name="special-requests" placeholder="Permintaan spesial..." className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-4xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-28 resize-none" value={notes} onChange={e => setNotes(e.target.value)} />
+            <textarea id="special-requests" name="special-requests" placeholder="Permintaan spesial..." className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-4xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-28 resize-none" value={notes} onChange={e => setNotes(toTitleCase(e.target.value))} />
           </div>
         </div>
         <div className="p-8 bg-emerald-50/50 border-t border-emerald-100 space-y-8">

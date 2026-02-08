@@ -555,7 +555,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
               </div>
               <div className="text-center pt-3 text-[9px] text-slate-400">
                 <p>Terima kasih</p>
-                <p>{new Date().toLocaleDateString('id-ID')}</p>
+                <p>{new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
               </div>
             </div>
             <div className="bg-slate-50 p-3 flex gap-2">
