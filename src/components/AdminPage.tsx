@@ -520,11 +520,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
       )}
 
       {showReceipt && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-200 flex items-center justify-center p-4 animate-in fade-in">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-200 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-70 rounded-xl shadow-2xl overflow-hidden">
             <div className="bg-slate-900 p-3 text-center">
               <h2 className="font-black text-white text-sm uppercase tracking-widest">SELENDANG SUTRO</h2>
-              <p className="text-[9px] text-slate-400">Jl. Sutro No. 1</p>
+              <p className="text-[9px] text-slate-400">Licin - Banyuwangi</p>
             </div>
             <div className="p-4 space-y-2 text-[10px]">
               <div className="flex justify-between border-b border-dashed border-slate-200 pb-2">
@@ -554,7 +554,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
                 <span className="font-bold text-emerald-600">Rp {showReceipt.totalPrice.toLocaleString('id-ID')}</span>
               </div>
               <div className="text-center pt-3 text-[9px] text-slate-400">
-                <p>Terima kasih</p>
+                <p>Matur Sembah Nuwun</p>
                 <p>{new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
               </div>
             </div>

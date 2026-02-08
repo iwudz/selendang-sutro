@@ -338,7 +338,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
 
       {showMasakanSiap && (
         <div className="fixed inset-0 bg-black/10 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="border-4 border-red-500 rounded-full px-12 py-8 animate-pulse duration-700 bg-white shadow-2xl">
+          <div className="border-4 border-red-500 rounded-2xl px-12 py-8 animate-pulse duration-700 bg-white shadow-2xl">
             <div className="text-center">
               <h2 className="text-3xl font-black text-red-600 uppercase tracking-tighter">MASAKAN SIAP</h2>
               <p className="text-lg font-bold text-slate-700 mt-1">Nama {masakanSiapTable}</p>
