@@ -42,19 +42,6 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
   const tableInputRef = useRef<HTMLInputElement>(null);
   const notesInputRef = useRef<HTMLTextAreaElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
-  const lastServedOrderRef = useRef<string>('');
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hasUserInteracted = useRef(false);
-
-  useEffect(() => {
-    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,57 +54,26 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
   }, []);
 
   useEffect(() => {
-    const handleUserInteraction = () => {
-      hasUserInteracted.current = true;
-      if (!audioRef.current) {
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      }
-    };
-    window.addEventListener('click', handleUserInteraction, { once: true });
-    window.addEventListener('touchstart', handleUserInteraction, { once: true });
-    return () => {
-      window.removeEventListener('click', handleUserInteraction);
-      window.removeEventListener('touchstart', handleUserInteraction);
-    };
-  }, []);
-
-  const playAlert = () => {
-    if (!hasUserInteracted.current) {
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-      }
-      return;
-    }
-    if (!audioRef.current) {
-      audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    }
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    }
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
-    }
-  };
-
-  useEffect(() => {
     if (!currentUser?.id) return;
+    
+    const shownOrders = JSON.parse(localStorage.getItem('shownServedOrders') || '[]');
     
     const servedOrders = orders.filter(o => 
       o.status === 'SERVED' && 
-      String(o.waiterId) === String(currentUser.id) &&
-      o.id !== lastServedOrderRef.current
+      o.waiterId === currentUser.id &&
+      !shownOrders.includes(o.id)
     );
     
     if (servedOrders.length > 0) {
-      const latestServed = servedOrders.sort((a, b) => (b.servedAt || 0) - (a.servedAt || 0))[0];
-      lastServedOrderRef.current = latestServed.id;
+      const latestServed = servedOrders[0];
+      const newShown = [...shownOrders, latestServed.id].slice(-50);
+      localStorage.setItem('shownServedOrders', JSON.stringify(newShown));
       setMasakanSiapTable(latestServed.tableNumber);
       setShowMasakanSiap(true);
-      playAlert();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       setTimeout(() => setShowMasakanSiap(false), 5000);
     }
-  }, [orders, currentUser?.id]);
+  }, [orders, currentUser]);
 
   const handleFocusScroll = useCallback((ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>) => {
     if (ref.current && formContainerRef.current) {
@@ -377,11 +333,11 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
       )}
 
       {showMasakanSiap && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-300 flex items-start justify-center pt-20">
-          <div className="border-4 border-red-500 rounded-3xl p-8 animate-pulse bg-white/90 shadow-2xl">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="border-4 border-red-500 rounded-full px-12 py-8 animate-pulse bg-white shadow-2xl">
             <div className="text-center">
-              <h2 className="text-4xl font-black text-red-600 uppercase tracking-tighter animate-bounce">MASAKAN SIAP</h2>
-              <p className="text-xl font-bold text-slate-700 mt-2">Nama: {masakanSiapTable}</p>
+              <h2 className="text-3xl font-black text-red-600 uppercase tracking-tighter">MASAKAN SIAP</h2>
+              <p className="text-lg font-bold text-slate-700 mt-1">Meja {masakanSiapTable}</p>
             </div>
           </div>
         </div>
