@@ -13,7 +13,7 @@ export const SUPABASE_CONFIG = {
 };
 
 export const INITIAL_MENU_ITEMS: MenuItem[] = [
-  { id: '1', name: 'Rendang Daging', price: 45000, category: 'Menu Utama', image: 'https://picsum.photos/seed/rendang/400/300', isSoldOut: false },
+  { id: '1', name: 'Rendang Daging', price: 45000, category: 'Makanan', image: 'https://picsum.photos/seed/rendang/400/300', isSoldOut: false },
 ];
 
 export const INITIAL_USERS: User[] = [

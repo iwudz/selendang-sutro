@@ -176,7 +176,7 @@ export const subscribeToMenu = (
                     id: payload.new.id?.toString() || '',
                     name: payload.new.name as string || '',
                     price: payload.new.price as number || 0,
-                    category: (payload.new.category as MenuCategory) || 'Menu Utama',
+                    category: (payload.new.category as MenuCategory) || 'Makanan',
                     image: payload.new.image as string || '',
                     isSoldOut: payload.new.is_sold_out as boolean || false
                 };

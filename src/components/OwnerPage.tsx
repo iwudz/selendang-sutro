@@ -7,9 +7,16 @@ import {
   TrendingUp, Utensils, Plus, 
   LayoutDashboard, Edit3, Trash2, ShieldCheck, XCircle, Menu as HamburgerIcon, Calendar,
   ImageIcon, CheckCircle2, AlertCircle, Camera, Loader2, AlertTriangle, BarChart3,
-  ShoppingBag, Download
+  ShoppingBag, Download, Coffee, IceCream
 } from 'lucide-react';
+
+const CATEGORY_ICONS_OWNER = {
+  'Makanan': <Utensils className="w-4 h-4" />,
+  'Snack': <IceCream className="w-4 h-4" />,
+  'Minuman': <Coffee className="w-4 h-4" />
+};
 import { SUPABASE_CONFIG } from '../constants';
+import { supabase } from '../services/supabase';
 import ChartContainer from './ChartContainer';
 
 interface OwnerPageProps {
@@ -22,11 +29,6 @@ interface OwnerPageProps {
 
 type TabMode = 'Dashboard' | 'Menu' | 'Users' | 'Orders';
 
-const CATEGORY_GROUPS = [
-  { id: 'makanan', label: 'MAKANAN', categories: ['Menu Utama', 'Camilan'], color: 'amber' },
-  { id: 'minuman', label: 'MINUMAN', categories: ['Minuman Dingin', 'Minuman Panas'], color: 'blue' }
-];
-
 const STATUS_CONFIG = {
   [OrderStatus.NEW_ORDER]: { label: 'New Order', color: 'amber', icon: '🔔' },
   [OrderStatus.COOKING]: { label: 'Cooking', color: 'blue', icon: '🍳' },
@@ -36,6 +38,7 @@ const STATUS_CONFIG = {
 
 const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, users, setUsers }) => {
   const [activeTab, setActiveTab] = useState<TabMode>('Dashboard');
+  const [activeMenuCategory, setActiveMenuCategory] = useState<'Makanan' | 'Snack' | 'Minuman'>('Makanan');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Partial<MenuItem> | null>(null);
   const [editingUser, setEditingUser] = useState<Partial<User> | null>(null);
@@ -182,6 +185,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
     const newStatus = !item.isSoldOut;
     
     setMenuItems(prev => prev.map(m => m.id === itemId ? { ...m, isSoldOut: newStatus } : m));
+    setActiveTab('Menu');
 
     if (SUPABASE_CONFIG.URL && SUPABASE_CONFIG.ANON_KEY) {
       await fetch(`${getBaseUrl()}/rest/v1/menu_items?id=eq.${itemId}`, {
@@ -202,11 +206,21 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
     const { type, id } = deleteModal;
     try {
       const endpoint = type === 'menu' ? 'menu_items' : 'users';
+      if (type === 'menu') {
+        const menuItem = menuItems.find(i => i.id === id);
+        if (menuItem?.image) {
+          const imageUrl = menuItem.image;
+          const urlParts = imageUrl.split('/');
+          const fileName = urlParts[urlParts.length - 1];
+          await supabase.storage.from('menu-images').remove([fileName]);
+        }
+      }
       if (SUPABASE_CONFIG.URL && SUPABASE_CONFIG.ANON_KEY) {
-        await fetch(`${getBaseUrl()}/rest/v1/${endpoint}?id=eq.${id}`, {
+        const res = await fetch(`${getBaseUrl()}/rest/v1/${endpoint}?id=eq.${id}`, {
           method: 'DELETE',
           headers: getHeaders()
         });
+        if (!res.ok) throw new Error('Delete failed');
       }
       if (type === 'menu') {
         setMenuItems(prev => prev.filter(i => i.id !== id));
@@ -255,6 +269,7 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
       }
       setEditingMenu(null);
       setActiveTab('Menu');
+      window.scrollTo(0, 0);
     } catch (err) {
       console.error("Save error:", err);
       alert("Gagal menyimpan menu");
@@ -297,27 +312,26 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
     if (!file || !editingMenu) return;
     if (file.size > 5 * 1024 * 1024) return alert("File max 5MB");
     
-    setIsUploading(true);
     const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const res = await fetch(`${getBaseUrl()}/storage/v1/object/menu-images/menu-${Date.now()}.${file.name.split('.').pop()}`, {
-          method: 'POST',
-          headers: { ...getHeaders(), 'Content-Type': file.type },
-          body: file
-        });
-        if (!res.ok) throw new Error('Upload failed');
-        const { path } = await res.json();
-        const publicUrl = `${getBaseUrl()}/storage/v1/object/public/menu-images/${path}`;
-        setEditingMenu({ ...editingMenu, image: publicUrl });
-      } catch (err) {
-        console.error("Upload error:", err);
-        alert("Gagal upload gambar");
-      } finally {
-        setIsUploading(false);
-      }
+    reader.onload = (e) => {
+      setEditingMenu({ ...editingMenu, image: e.target?.result as string });
     };
     reader.readAsDataURL(file);
+    
+    setIsUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `menu-${Date.now()}.${fileExt}`;
+    
+    supabase.storage.from('menu-images').upload(fileName, file).then(({ error }) => {
+      if (error) {
+        console.error("Upload error:", error);
+        alert("Gagal upload gambar");
+      } else {
+        const { data: urlData } = supabase.storage.from('menu-images').getPublicUrl(fileName);
+        setEditingMenu({ ...editingMenu, image: urlData.publicUrl });
+      }
+      setIsUploading(false);
+    });
   };
 
   const navItems = [
@@ -679,58 +693,62 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
 
         {activeTab === 'Menu' && (
           <div className="animate-in fade-in duration-500 space-y-6">
-            <div className="flex justify-between items-center px-4">
-              <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Manajemen Menu</h2>
-              <button onClick={() => setEditingMenu({ name: '', price: 0, category: 'Menu Utama', image: '', isSoldOut: false })} className="bg-emerald-600/80 text-white p-4 rounded-2xl shadow-xl active:scale-95 transition-all">
-                <Plus className="w-6 h-6" />
+            <div className="flex items-center gap-2 px-4">
+              {(['Makanan', 'Snack', 'Minuman'] as const).map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveMenuCategory(cat)}
+                  className={`flex-1 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                    activeMenuCategory === cat 
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                >
+                  {CATEGORY_ICONS_OWNER[cat]}
+                  {cat}
+                </button>
+              ))}
+              <button onClick={() => setEditingMenu({ name: '', price: 0, category: activeMenuCategory, image: '', isSoldOut: false })} className="bg-emerald-600/80 text-white p-3 rounded-xl shadow-xl active:scale-95 transition-all">
+                <Plus className="w-5 h-5" />
               </button>
             </div>
             
-            {CATEGORY_GROUPS.map(({ id, label, categories, color }) => {
-              const groupItems = menuItems.filter(item => categories.includes(item.category));
-              if (groupItems.length === 0) return null;
-              return (
-                <div key={id}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest bg-${color}-100 text-${color}-700`}>
-                      {label}
-                    </div>
-                    <div className="h-px bg-slate-200 flex-1" />
-                  </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {groupItems.map(item => (
-                      <div key={item.id} className={`bg-white rounded-xl border border-slate-100 p-4 shadow-sm relative group flex flex-col ${item.isSoldOut ? 'opacity-60 grayscale-[0.3]' : ''}`}>
-                        <div className="aspect-4/3 rounded-lg overflow-hidden mb-3 relative bg-slate-50 border border-slate-100 shadow-inner">
-                          <img src={item.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" />
-                          {item.isSoldOut && (
-                            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                              <span className="bg-red-600 text-white px-3 py-1 rounded-full font-black text-[8px] uppercase tracking-widest">Habis</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1 block">{item.category}</span>
-                          <h4 className="text-xs font-black text-slate-800 uppercase line-clamp-1 mb-1 tracking-tight">{item.name}</h4>
-                          <div className="flex justify-between items-center">
-                            <p className="text-[10px] font-bold text-slate-400 tracking-widest">Rp {item.price.toLocaleString('id-ID')}</p>
-                            <button onClick={(e) => { e.stopPropagation(); toggleStatus(item.id); }} className={`text-[8px] font-black uppercase px-2 py-1 rounded-md border transition-all flex items-center gap-1 ${
-                              item.isSoldOut ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                            }`}>
-                              {item.isSoldOut ? <AlertCircle className="w-2.5 h-2.5" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
-                              {item.isSoldOut ? 'Habis' : 'Ada'}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="mt-5 flex gap-2">
-                          <button onClick={() => setEditingMenu(item)} className="flex-1 py-3 bg-slate-50 hover:bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 transition-colors">Edit</button>
-                          <button onClick={() => promptDelete('menu', item.id, item.name)} className="p-3 text-red-200 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                        </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-4">
+              {menuItems.filter(item => item.category === activeMenuCategory).map(item => (
+                <div key={item.id} className={`bg-white rounded-xl border border-slate-100 p-4 shadow-sm relative group flex flex-col ${item.isSoldOut ? 'opacity-60 grayscale-[0.3]' : ''}`}>
+                  <div className="aspect-4/3 rounded-lg overflow-hidden mb-3 relative bg-slate-50 border border-slate-100 shadow-inner">
+                    <img src={item.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" />
+                    {item.isSoldOut && (
+                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                        <span className="bg-red-600 text-white px-3 py-1 rounded-full font-black text-[8px] uppercase tracking-widest">Habis</span>
                       </div>
-                    ))}
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-black text-slate-800 uppercase line-clamp-1 mb-1 tracking-tight">{item.name}</h4>
+                    <div className="flex justify-between items-center">
+                      <p className="text-[10px] font-bold text-slate-400 tracking-widest">Rp {item.price.toLocaleString('id-ID')}</p>
+                      <button onClick={(e) => { e.stopPropagation(); toggleStatus(item.id); }} className={`text-[8px] font-black uppercase px-2 py-1 rounded-md border transition-all flex items-center gap-1 ${
+                        item.isSoldOut ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      }`}>
+                        {item.isSoldOut ? <AlertCircle className="w-2.5 h-2.5" /> : <CheckCircle2 className="w-2.5 h-2.5" />}
+                        {item.isSoldOut ? 'Habis' : 'Ada'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex gap-2">
+                    <button onClick={() => setEditingMenu(item)} className="flex-1 py-3 bg-slate-50 hover:bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 transition-colors">Edit</button>
+                    <button onClick={() => promptDelete('menu', item.id, item.name)} className="p-3 text-red-200 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+              {menuItems.filter(item => item.category === activeMenuCategory).length === 0 && (
+                <div className="col-span-full py-12 text-center">
+                  <p className="text-slate-400 font-black text-sm uppercase tracking-widest">Belum ada menu</p>
+                  <button onClick={() => setEditingMenu({ name: '', price: 0, category: activeMenuCategory, image: '', isSoldOut: false })} className="mt-4 text-emerald-600 font-bold text-sm">+ Tambah Menu</button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -799,10 +817,9 @@ const OwnerPage: React.FC<OwnerPageProps> = ({ orders, menuItems, setMenuItems, 
               <div className="space-y-1">
                 <label htmlFor="menu-category" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kategori</label>
                 <select id="menu-category" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none font-black text-xs uppercase" value={editingMenu.category} onChange={e => setEditingMenu({...editingMenu, category: e.target.value as any})}>
-                  <option value="Menu Utama">Menu Utama</option>
-                  <option value="Camilan">Camilan</option>
-                  <option value="Minuman Dingin">Minuman Dingin</option>
-                  <option value="Minuman Panas">Minuman Panas</option>
+                  <option value="Makanan">Makanan</option>
+                  <option value="Snack">Snack</option>
+                  <option value="Minuman">Minuman</option>
                 </select>
               </div>
               <div className="flex items-center justify-between py-4 px-3 bg-slate-50 rounded-xl">

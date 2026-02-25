@@ -24,10 +24,9 @@ export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
 
 // Menu Category Constants
 export const MenuCategory = {
-  MENU_UTAMA: 'Menu Utama',
-  CAMILAN: 'Camilan',
-  MINUMAN_DINGIN: 'Minuman Dingin',
-  MINUMAN_PANAS: 'Minuman Panas'
+  MAKANAN: 'Makanan',
+  SNACK: 'Snack',
+  MINUMAN: 'Minuman'
 } as const;
 export type MenuCategory = typeof MenuCategory[keyof typeof MenuCategory];
 

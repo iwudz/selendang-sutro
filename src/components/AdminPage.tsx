@@ -6,13 +6,15 @@ import { usePagination } from '../hooks/usePagination';
 import {
   CookingPot, HandPlatter, Banknote, QrCode, X,
   Bell, AlertTriangle, Check, PackageSearch,
-  Edit3, Trash2, ChevronLeft, ChevronRight
+  Edit3, Trash2, ChevronLeft, ChevronRight,
+  Utensils, Coffee, IceCream
 } from 'lucide-react';
 
-const CATEGORY_GROUPS_ADMIN = [
-  { id: 'makanan', label: 'MAKANAN', categories: ['Menu Utama', 'Camilan'], color: 'amber' },
-  { id: 'minuman', label: 'MINUMAN', categories: ['Minuman Dingin', 'Minuman Panas'], color: 'blue' }
-];
+const CATEGORY_ICONS_ADMIN = {
+  'Makanan': <Utensils className="w-4 h-4" />,
+  'Snack': <IceCream className="w-4 h-4" />,
+  'Minuman': <Coffee className="w-4 h-4" />
+};
 
 interface AdminPageProps {
   orders: Order[];
@@ -31,6 +33,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
   const [newOrderAlert, setNewOrderAlert] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [activeStockCategory, setActiveStockCategory] = useState<'Makanan' | 'Snack' | 'Minuman'>('Makanan');
   const lastOrderCount = useRef(orders.length);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -62,9 +65,16 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
     }
   };
 
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+
   const handleCancelOrder = (orderId: string) => {
-    if (window.confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')) {
-      onCancelOrder(orderId);
+    setCancelOrderId(orderId);
+  };
+
+  const confirmCancelOrder = () => {
+    if (cancelOrderId) {
+      onCancelOrder(cancelOrderId);
+      setCancelOrderId(null);
     }
   };
 
@@ -190,7 +200,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
                 )}
                 {order.status === OrderStatus.COOKING && (
                   <div className="space-y-2">
-                    <button onClick={() => handleEditOrder(order)} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200">
+                    <button onClick={() => handleEditOrder(order)} className="w-full py-3 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200">
                       <Edit3 className="w-4 h-4" /> EDIT
                     </button>
                     <button onClick={() => onUpdateStatus(order.id, OrderStatus.SERVED)} className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
@@ -199,14 +209,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
                   </div>
                 )}
                 {order.status === OrderStatus.SERVED && (
-                  <div className="space-y-2">
-                    <button onClick={() => handleEditOrder(order)} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-200">
-                      <Edit3 className="w-4 h-4" /> EDIT
-                    </button>
-                    <button onClick={() => setSelectedOrderForPayment(order)} className="w-full py-4 bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                      <Banknote className="w-4 h-4" /> PROSES BAYAR
-                    </button>
-                  </div>
+                  <button onClick={() => setSelectedOrderForPayment(order)} className="w-full py-4 bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                    <Banknote className="w-4 h-4" /> PROSES BAYAR
+                  </button>
                 )}
               </div>
             </div>
@@ -253,9 +258,62 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
         </div>
       )}
 
-{/* Stock Manager Modal */}
+{/* Stock Manager - Responsive Display */}
+      <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Kelola Stok</h3>
+          <span className="text-[10px] font-bold text-slate-400 uppercase">Ketuk untuk toggle</span>
+        </div>
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-2 mb-4">
+            {(['Makanan', 'Snack', 'Minuman'] as const).map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveStockCategory(cat)}
+                className={`flex-1 py-2 px-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${
+                  activeStockCategory === cat 
+                  ? 'bg-emerald-600 text-white shadow-md' 
+                  : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {CATEGORY_ICONS_ADMIN[cat]}
+                {cat}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 xl:grid-cols-6 gap-3 max-h-[60vh] overflow-y-auto p-2">
+            {menuItems.filter(item => item.category === activeStockCategory).map(item => (
+              <button
+                key={item.id}
+                onClick={() => onToggleSoldOut(item.id)}
+                className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-200 p-2 flex flex-col items-center gap-2 ${
+                  item.isSoldOut 
+                    ? 'border-red-200 bg-red-50' 
+                    : 'border-emerald-200 bg-white hover:border-emerald-400 hover:shadow-md'
+                }`}
+              >
+                <div className="w-full aspect-square rounded-lg overflow-hidden bg-slate-100 relative">
+                  <img src={item.image} className={`w-full h-full object-cover ${item.isSoldOut ? 'grayscale opacity-60' : ''}`} />
+                  {item.isSoldOut && (
+                    <div className="absolute inset-0 bg-red-500/80 flex items-center justify-center">
+                      <span className="bg-white text-red-600 px-2 py-1 rounded-lg text-[8px] font-black uppercase shadow-lg">HABIS</span>
+                    </div>
+                  )}
+                </div>
+                <p className={`text-[9px] font-bold leading-tight text-center line-clamp-2 uppercase w-full ${
+                  item.isSoldOut ? 'text-red-600' : 'text-slate-700'
+                }`}>
+                  {item.name}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Stock Manager Modal - Mobile Only */}
       {showStockManager && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 lg:hidden">
           <div className="bg-white w-full max-w-sm rounded-4xl shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in-95">
             <div className="p-6 border-b flex justify-between items-center bg-linear-to-r from-emerald-600 to-emerald-500">
               <div>
@@ -267,65 +325,67 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto bg-slate-50">
-              {CATEGORY_GROUPS_ADMIN.map(({ id, label, categories, color }) => {
-                const groupItems = menuItems.filter(item => categories.includes(item.category));
-                if (groupItems.length === 0) return null;
-                
-                return (
-                  <div key={id} className="p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest bg-${color}-100 text-${color}-700`}>
-                        {label}
-                      </div>
-                      <div className="h-px bg-slate-200 flex-1" />
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      {groupItems.map(item => (
-                        <button
-                          key={item.id}
-                          onClick={() => onToggleSoldOut(item.id)}
-                          className={`group relative overflow-hidden rounded-xl border transition-all duration-200 p-2 flex flex-col items-center gap-1 bg-white aspect-square ${
-                            item.isSoldOut 
-                              ? 'border-slate-200 bg-slate-50 grayscale-[0.3]' 
-                              : `border-${color}-200 hover:border-${color}-400 bg-${color}-50/30`
-                          }`}
-                        >
-                          <div className="w-full aspect-square rounded-lg overflow-hidden bg-slate-100 relative">
-                            <img
-                              src={item.image}
-                              className={`w-full h-full object-cover transition-all duration-200 ${item.isSoldOut ? 'grayscale opacity-50' : 'group-hover:scale-110'}`}
-                            />
-                            {item.isSoldOut && (
-                              <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center">
-                                <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase">HABIS</span>
-                              </div>
-                            )}
-                          </div>
-                          <p className={`text-[9px] font-bold leading-tight text-center line-clamp-2 uppercase ${
-                            item.isSoldOut ? 'text-slate-400' : 'text-slate-700'
-                          }`}>
-                            {item.name}
-                          </p>
-                          <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${
-                            item.isSoldOut ? 'bg-red-500' : `bg-${color}-500`
-                          }`} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {menuItems.length === 0 && (
-                <div className="flex-1 flex items-center justify-center text-slate-400">
-                  <div className="text-center">
-                    <PackageSearch className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-xs font-bold uppercase">Tidak ada menu</p>
-                  </div>
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 bg-white border-b">
+                <div className="flex items-center gap-2">
+                  {(['Makanan', 'Snack', 'Minuman'] as const).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveStockCategory(cat)}
+                      className={`flex-1 py-2 px-3 rounded-lg font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${
+                        activeStockCategory === cat 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      {CATEGORY_ICONS_ADMIN[cat]}
+                      {cat}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
+              
+              <div className="flex-1 overflow-y-auto bg-slate-50 p-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {menuItems.filter(item => item.category === activeStockCategory).map(item => (
+                    <button
+                      key={item.id}
+                      onClick={(e) => { e.stopPropagation(); onToggleSoldOut(item.id); }}
+                      className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-200 p-2 flex flex-col items-center gap-1 bg-white aspect-square ${
+                        item.isSoldOut 
+                          ? 'border-red-200 bg-red-50' 
+                          : 'border-emerald-200 hover:border-emerald-400 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-slate-100 relative">
+                        <img
+                          src={item.image}
+                          className={`w-full h-full object-cover transition-all duration-200 ${item.isSoldOut ? 'grayscale opacity-60' : 'group-hover:scale-110'}`}
+                        />
+                        {item.isSoldOut && (
+                          <div className="absolute inset-0 bg-red-500/80 flex items-center justify-center">
+                            <span className="bg-white text-red-600 px-2 py-1 rounded-lg text-[8px] font-black uppercase shadow-lg">HABIS</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className={`text-[9px] font-bold leading-tight text-center line-clamp-2 uppercase w-full ${
+                        item.isSoldOut ? 'text-red-600' : 'text-slate-700'
+                      }`}>
+                        {item.name}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                
+                {menuItems.filter(item => item.category === activeStockCategory).length === 0 && (
+                  <div className="flex-1 flex items-center justify-center text-slate-400 py-12">
+                    <div className="text-center">
+                      <PackageSearch className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs font-bold uppercase">Tidak ada menu</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -387,8 +447,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
       {/* Edit Order Modal */}
       {editingOrder && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-150 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-150 flex items-center justify-center p-4 lg:p-8">
+          <div className="bg-white w-full max-w-md lg:max-w-2xl rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 max-h-[90vh] lg:max-h-[85vh] overflow-y-auto">
             <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight leading-none">Edit Pesanan</h3>
               <button onClick={() => setEditingOrder(null)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-300" /></button>
@@ -401,39 +461,48 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
 
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Item Pesanan</p>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {editingOrder.items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100">
+                    <div key={item.id} className="flex items-center justify-between p-2 lg:p-3 bg-slate-50 rounded-xl gap-2">
+                      <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 shrink-0">
                           <img src={item.menuItem.image} className="w-full h-full object-cover" alt={item.menuItem.name} />
                         </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-800">{item.menuItem.name}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-slate-800 truncate">{item.menuItem.name}</p>
                           <p className="text-[10px] text-slate-500">Rp {item.menuItem.price.toLocaleString('id-ID')}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 lg:gap-2 min-w-[90px] lg:min-w-[100px]">
                         <button 
-                          className="w-6 h-6 rounded-md bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-300"
+                          className="w-7 h-7 lg:w-8 lg:h-8 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-300 font-bold text-sm"
                           onClick={() => {
                             if (editingOrder) {
-                              const updatedItems = editingOrder.items.map(i => 
-                                i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i
-                              );
-                              setEditingOrder({
-                                ...editingOrder,
-                                items: updatedItems,
-                                totalPrice: updatedItems.reduce((sum, i) => sum + (i.quantity * i.menuItem.price), 0)
-                              });
+                              if (item.quantity === 1) {
+                                const updatedItems = editingOrder.items.filter(i => i.id !== item.id);
+                                setEditingOrder({
+                                  ...editingOrder,
+                                  items: updatedItems,
+                                  totalPrice: updatedItems.reduce((sum, i) => sum + (i.quantity * i.menuItem.price), 0)
+                                });
+                              } else {
+                                const updatedItems = editingOrder.items.map(i => 
+                                  i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i
+                                );
+                                setEditingOrder({
+                                  ...editingOrder,
+                                  items: updatedItems,
+                                  totalPrice: updatedItems.reduce((sum, i) => sum + (i.quantity * i.menuItem.price), 0)
+                                });
+                              }
                             }
                           }}
                         >
-                          -
+                          {item.quantity === 1 ? '🗑' : '-'}
                         </button>
-                        <span className="text-sm font-black text-slate-800">{item.quantity}</span>
+                        <span className="text-sm font-black text-slate-800 min-w-5 text-center">{item.quantity}</span>
                         <button 
-                          className="w-6 h-6 rounded-md bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-300"
+                          className="w-7 h-7 lg:w-8 lg:h-8 rounded-lg bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-300 font-bold text-sm"
                           onClick={() => {
                             if (editingOrder) {
                               const updatedItems = editingOrder.items.map(i => 
@@ -492,6 +561,25 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
         </div>
       )}
 
+      {/* Cancel Confirmation Modal */}
+      {cancelOrderId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-200 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800 uppercase">Batal Pesanan?</h3>
+              <p className="text-sm text-slate-500">Apakah Anda yakin ingin membatalkan pesanan ini?</p>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setCancelOrderId(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black text-sm uppercase">Tidak</button>
+              <button onClick={confirmCancelOrder} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-sm uppercase">Ya, Batal</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* QRIS Modal */}
       {showQrisFullScreen && selectedOrderForPayment && (
         <div className="fixed inset-0 bg-white z-150 flex flex-col items-center justify-center p-6 animate-in fade-in">
@@ -520,7 +608,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ orders, onUpdateStatus, menuItems
       )}
 
       {showReceipt && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-200 flex items-center justify-center p-4 animate-in fade-in">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[300] flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white w-full max-w-70 rounded-xl shadow-2xl overflow-hidden">
             <div className="bg-slate-900 p-3 text-center">
               <h2 className="font-black text-white text-sm uppercase tracking-widest">SELENDANG SUTRO</h2>

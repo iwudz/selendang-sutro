@@ -15,7 +15,7 @@ const mapMenuItem = (m: Record<string, unknown>): MenuItem => ({
     id: m.id?.toString() || '',
     name: m.name as string || '',
     price: m.price as number || 0,
-    category: (m.category as MenuCategory) || 'Menu Utama',
+    category: (m.category as MenuCategory) || 'Makanan',
     image: m.image as string || '',
     isSoldOut: m.is_sold_out as boolean || false
 });
@@ -137,17 +137,13 @@ const useSupabase = () => {
 
     const setupRealtimeSubscription = () => {
         if (!SUPABASE_CONFIG.URL || !SUPABASE_CONFIG.ANON_KEY) {
-            console.log('⚠️ Supabase not configured');
             return;
         }
         if (isSubscribed.current) {
-            console.log('⚠️ Already subscribed');
             return;
         }
         
         isSubscribed.current = true;
-
-        console.log('🔌 Connecting to Supabase realtime...');
 
         const channel = supabase.channel('test-channel');
         
@@ -156,39 +152,43 @@ const useSupabase = () => {
                 event: 'INSERT', 
                 schema: 'public', 
                 table: 'orders' 
-            }, (payload) => {
-                console.log('🎯 ORDER INSERT DETECTED!', payload);
+            }, () => {
                 fetchFromSupabase();
             })
             .on('postgres_changes', { 
                 event: 'UPDATE', 
                 schema: 'public', 
                 table: 'orders' 
-            }, (payload) => {
-                console.log('🎯 ORDER UPDATE DETECTED!', payload);
+            }, () => {
+                fetchFromSupabase();
+            })
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'menu_items' 
+            }, () => {
                 fetchFromSupabase();
             })
             .on('postgres_changes', { 
                 event: 'UPDATE', 
                 schema: 'public', 
                 table: 'menu_items' 
-            }, (payload) => {
-                console.log('🎯 MENU UPDATE DETECTED!', payload);
+            }, () => {
                 fetchFromSupabase();
             })
-            .subscribe((status, err) => {
-                console.log('📻 Subscription status:', status, err);
+            .on('postgres_changes', { 
+                event: 'DELETE', 
+                schema: 'public', 
+                table: 'menu_items' 
+            }, () => {
+                fetchFromSupabase();
+            })
+            .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('✅ Connected!');
                     setIsConnected(true);
-                    
-                    // Verify subscription dengan test
-                    channel.track({ online_at: new Date().toISOString() })
-                        .then(() => console.log('✅ Presence tracked'))
-                        .catch(e => console.log('❌ Presence error:', e));
+                    channel.track({ online_at: new Date().toISOString() });
                 }
                 if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-                    console.log('❌ Disconnected:', err);
                     isSubscribed.current = false;
                     setIsConnected(false);
                 }

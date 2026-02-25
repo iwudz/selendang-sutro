@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { MenuItem, Order, OrderItem, User, MenuCategory } from '../types';
 import { OrderStatus } from '../types';
-import { Search, Plus, Minus, ShoppingCart, Send, ChevronDown, X, Maximize2, ListFilter, Check, Utensils, Coffee, IceCream, Flame } from 'lucide-react';
+import { Search, Plus, Minus, ShoppingCart, Send, ChevronDown, X, Maximize2, Utensils, Coffee, IceCream } from 'lucide-react';
 
 interface WaiterPageProps {
   currentUser: User;
@@ -11,47 +11,29 @@ interface WaiterPageProps {
   orders: Order[];
 }
 
-const CATEGORIES: ('All' | MenuCategory)[] = ['All', 'Menu Utama', 'Camilan', 'Minuman Dingin', 'Minuman Panas'];
+const CATEGORIES: ('All' | MenuCategory)[] = ['All', 'Makanan', 'Snack', 'Minuman'];
 
 const CATEGORY_ICONS: Record<MenuCategory, React.ReactNode> = {
-  'Menu Utama': <Utensils className="w-4 h-4" />,
-  'Camilan': <IceCream className="w-4 h-4" />,
-  'Minuman Dingin': <Coffee className="w-4 h-4" />,
-  'Minuman Panas': <Flame className="w-4 h-4" />
+  'Makanan': <Utensils className="w-4 h-4" />,
+  'Snack': <IceCream className="w-4 h-4" />,
+  'Minuman': <Coffee className="w-4 h-4" />
 };
-
-const CATEGORY_GROUPS = [
-  { id: 'makanan', label: 'MAKANAN', categories: ['Menu Utama', 'Camilan'] },
-  { id: 'minuman', label: 'MINUMAN', categories: ['Minuman Dingin', 'Minuman Panas'] }
-];
 
 const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuItems, orders }) => {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [tableInfo, setTableInfo] = useState('');
+  const [tableInfoTouched, setTableInfoTouched] = useState(false);
   const [notes, setNotes] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'All' | MenuCategory>('All');
+  const [activeCategory, setActiveCategory] = useState<'All' | MenuCategory>('Makanan');
   const [isCartExpanded, setIsCartExpanded] = useState(false);
-  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [zoomImage, setZoomImage] = useState<MenuItem | null>(null);
   const [showSplash, setShowSplash] = useState(false);
   const [showMasakanSiap, setShowMasakanSiap] = useState(false);
   const [masakanSiapTable, setMasakanSiapTable] = useState('');
   const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
-  const categoryMenuRef = useRef<HTMLDivElement>(null);
+  const formContainerRef = useRef<HTMLDivElement>(null);
   const tableInputRef = useRef<HTMLInputElement>(null);
   const notesInputRef = useRef<HTMLTextAreaElement>(null);
-  const formContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
-        setShowCategoryMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -99,25 +81,10 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
 
   const filteredItems = useMemo(() => {
     return menuItems.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
-      return matchesSearch && matchesCategory;
+      return matchesCategory;
     });
-  }, [searchTerm, activeCategory, menuItems]);
-
-  const groupedItems = useMemo(() => {
-    if (activeCategory !== 'All') {
-      const group = CATEGORY_GROUPS.find(g => g.categories.includes(activeCategory));
-      if (group) {
-        const items = filteredItems.filter(item => group.categories.includes(item.category));
-        return [{ group, items }];
-      }
-    }
-    return CATEGORY_GROUPS.map(group => ({
-      group,
-      items: filteredItems.filter(item => group.categories.includes(item.category))
-    })).filter(g => g.items.length > 0);
-  }, [filteredItems, activeCategory]);
+  }, [activeCategory, menuItems]);
 
   const handleImageLoad = (itemId: string) => {
     setImageLoaded(prev => ({ ...prev, [itemId]: true }));
@@ -141,8 +108,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
   const totalPrice = cart.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
 
   const handleSubmit = async () => {
-    if (!tableInfo) return alert('Form Pemesan belum di isi!');
-    if (cart.length === 0) return alert('Belum Pesan Menu!');
+    if (!tableInfo || cart.length === 0) return;
 
     const newOrder: Order = {
       id: `ORD-${Date.now()}`,
@@ -171,86 +137,27 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
     <div className="flex h-full flex-col lg:flex-row overflow-hidden bg-slate-50 relative">
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-28 lg:pb-0">
         <div className="p-4 lg:p-6 bg-white/80 backdrop-blur-xl border-b sticky top-0 z-20">
-          <div className="flex items-center gap-3 max-w-4xl mx-auto w-full relative">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <label htmlFor="menu-search" className="sr-only">Cari menu</label>
-              <input 
-                id="menu-search"
-                name="menu-search"
-                type="text" 
-                placeholder="Cari menu ..."
-                autoComplete="off"
-                className="w-full pl-11 pr-4 py-2 bg-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold placeholder transition-all"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="relative" ref={categoryMenuRef}>
-              <button 
-                onClick={() => setShowCategoryMenu(!showCategoryMenu)}
-                className={`p-2 rounded-xl border-2 transition-all flex items-center justify-center relative ${
-                  showCategoryMenu || activeCategory !== 'All' 
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100' 
-                  : 'bg-white text-slate-500 border-slate-100 hover:bg-slate-50'
+          <div className="flex items-center gap-2 max-w-4xl mx-auto w-full">
+            {CATEGORIES.filter(c => c !== 'All').map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat as MenuCategory)}
+                className={`flex-1 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                  activeCategory === cat 
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' 
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
               >
-                <ListFilter className="w-5 h-5" />
-                {activeCategory !== 'All' && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
-                )}
+                {CATEGORY_ICONS[cat]}
+                {cat}
               </button>
-
-              {showCategoryMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-                  <div className="p-2">
-                    <p className="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Filter Kategori</p>
-                    {CATEGORIES.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => {
-                          setActiveCategory(cat);
-                          setShowCategoryMenu(false);
-                        }}
-                        className={`w-full text-left px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
-                          activeCategory === cat ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        {cat}
-                        {activeCategory === cat && <Check className="w-4 h-4" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
-          
-          {activeCategory !== 'All' && (
-            <div className="max-w-4xl mx-auto w-full mt-3 flex items-center gap-2">
-               <span className="text-[10px] font-black text-slate-400 titlecase tracking-widest">Kategori Aktif:</span>
-               <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-md text-[9px] font-black uppercase flex items-center gap-2">
-                 {activeCategory}
-                 <X className="w-3 h-3 cursor-pointer" onClick={() => setActiveCategory('All')} />
-               </span>
-            </div>
-          )}
         </div>
 
-        <div className="p-4 lg:p-8 space-y-8">
-          {groupedItems.map(({ group, items }) => (
-            <div key={group.id}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest ${
-                  group.id === 'makanan' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                }`}>
-                  {group.label}
-                </div>
-                <div className="h-px bg-slate-200 flex-1" />
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
-                {items.map(item => {
+        <div className="p-4 lg:p-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
+                {filteredItems.map(item => {
                   const inCart = cart.find(i => i.menuItem.id === item.id);
                   return (
                     <div key={item.id} className={`bg-white rounded-xl border border-slate-200/60 overflow-hidden group shadow-sm flex flex-col transition-all duration-300 ${item.isSoldOut ? 'opacity-80 grayscale-[0.4]' : 'hover:shadow-xl hover:-translate-y-1'}`}>
@@ -280,11 +187,10 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
                       </div>
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                         <div>
-                          <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1 leading-none flex items-center gap-1">
+                          <h3 className="font-bold text-sm text-slate-800 leading-tight line-clamp-2 min-h-10 uppercase flex items-center gap-2">
                             {CATEGORY_ICONS[item.category]}
-                            {item.category}
-                          </p>
-                          <h3 className="font-bold text-sm text-slate-800 leading-tight line-clamp-2 min-h-10 uppercase">{item.name}</h3>
+                            {item.name}
+                          </h3>
                           <p className="font-black text-slate-400 text-xs mt-1">Rp {item.price.toLocaleString('id-ID')}</p>
                         </div>
                         <div className="pt-2">
@@ -311,8 +217,6 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
                   );
                 })}
               </div>
-            </div>
-          ))}
           {filteredItems.length === 0 && (
             <div className="col-span-full py-20 text-center space-y-3 opacity-20">
                <Search className="w-16 h-16 mx-auto text-slate-400" />
@@ -340,8 +244,8 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
         <div className="fixed inset-0 bg-black/10 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="border-4 border-red-500 rounded-2xl px-12 py-8 animate-pulse duration-700 bg-white shadow-2xl">
             <div className="text-center">
-              <h2 className="text-3xl font-black text-red-600 uppercase tracking-tighter">MASAKAN SIAP</h2>
-              <p className="text-lg font-bold text-slate-700 mt-1">Nama {masakanSiapTable}</p>
+              <p className="text-lg font-bold text-slate-700 mb-1">Pesanan {masakanSiapTable}</p>
+              <h2 className="text-3xl font-black text-red-600 uppercase tracking-tighter">SIAP DISAJIKAN</h2>
             </div>
           </div>
         </div>
@@ -373,7 +277,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
 
       <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 transition-all duration-700 ease-in-out ${cart.length > 0 ? 'translate-y-0' : 'translate-y-full'}`}>
         {isCartExpanded && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setIsCartExpanded(false)} />}
-        <div className={`bg-white/90 backdrop-blur-2xl border-t border-white/40 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] rounded-t-4xl transition-all duration-700 ${isCartExpanded ? 'h-[85vh]' : 'h-24'} flex flex-col relative`}>
+        <div className={`bg-white/90 backdrop-blur-2xl border-t border-white/40 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] rounded-t-4xl transition-all duration-700 ${isCartExpanded ? 'h-[92vh]' : 'h-20'} flex flex-col relative`}>
           <div className="w-full flex justify-center py-4 cursor-pointer" onClick={() => setIsCartExpanded(!isCartExpanded)}><div className="w-16 h-1.5 bg-slate-200 rounded-full" /></div>
           {!isCartExpanded && (
             <div className="px-8 pb-8 flex items-center justify-between cursor-pointer h-full" onClick={() => setIsCartExpanded(true)}>
@@ -394,62 +298,63 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
               <h2 className="text-2xl font-black text-slate-800 tracking-tighter uppercase">Review Order</h2>
               <button onClick={() => setIsCartExpanded(false)} className="p-2 bg-slate-50 rounded-full"><ChevronDown className="w-6 h-6 text-slate-400" /></button>
             </div>
-            <div ref={formContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 pb-40">
-              <div className="space-y-3">
-                <label htmlFor="table-info" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Pemesan</label>
+            <div ref={formContainerRef} className="flex-1 overflow-y-auto p-6 space-y-5 pb-40">
+              <div>
                 <input 
                   id="table-info" 
                   name="table-info" 
                   type="text" 
-                  placeholder="Nama / Pemesan" 
+                  placeholder="Nama Pemesan" 
                   autoComplete="off" 
                   ref={tableInputRef}
-                  onFocus={() => handleFocusScroll(tableInputRef)}
-                  className="w-full px-6 py-4 bg-slate-100 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-xl font-black text-slate-800 placeholder:text-slate-200 uppercase" 
+                  onFocus={() => { handleFocusScroll(tableInputRef); setTableInfoTouched(true); }}
+                  onBlur={() => setTableInfoTouched(true)}
+                  className={`w-full px-5 py-3 bg-white border-2 rounded-xl focus:ring-0 text-base font-black text-slate-800 placeholder:text-slate-300 uppercase ${
+                    tableInfoTouched && !tableInfo ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-emerald-500'
+                  }`}
                   value={tableInfo} 
                   onChange={e => setTableInfo(e.target.value.toUpperCase())} 
                 />
               </div>
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Daftar Order</p>
-                <div className="space-y-3">
+              <div className="space-y-2">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Daftar Order</p>
+                <div className="space-y-2">
                   {cart.map(item => (
-                    <div key={item.id} className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                      <div className="flex-1 pr-4">
-                        <p className="text-sm font-bold text-slate-800 leading-tight uppercase">{item.menuItem.name}</p>
-                        <p className="text-[10px] font-bold text-emerald-600 mt-1">Rp {item.menuItem.price.toLocaleString('id-ID')}</p>
+                    <div key={item.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                      <div className="flex-1 pr-2">
+                        <p className="text-xs font-bold text-slate-800 leading-tight uppercase">{item.menuItem.name}</p>
+                        <p className="text-[9px] font-bold text-emerald-600 mt-0.5">Rp {item.menuItem.price.toLocaleString('id-ID')}</p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border">
-                           <button onClick={() => updateCart(item.menuItem, -1)} className="p-1.5 bg-white rounded-xl shadow-sm"><Minus className="w-3 h-3"/></button>
+                      <div className="flex items-center gap-1 min-w-[80px]">
+                        <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-lg border w-full justify-between">
+                           <button onClick={() => updateCart(item.menuItem, -1)} className="p-1.5 bg-white rounded-lg shadow-sm"><Minus className="w-3 h-3"/></button>
                            <span className="font-black text-xs min-w-5 text-center">{item.quantity}</span>
-                           <button onClick={() => updateCart(item.menuItem, 1)} className="p-1.5 bg-emerald-600 text-white rounded-xl shadow-sm"><Plus className="w-3 h-3"/></button>
+                           <button onClick={() => updateCart(item.menuItem, 1)} className="p-1.5 bg-emerald-600 text-white rounded-lg shadow-sm"><Plus className="w-3 h-3"/></button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="space-y-3">
-                <label htmlFor="order-notes" className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Catatan :</label>
+              <div>
                 <textarea 
                   id="order-notes" 
                   name="order-notes" 
-                  placeholder="Contoh: Sambal pisah, Tanpa es, ..." 
+                  placeholder="Catatan" 
                   ref={notesInputRef}
                   onFocus={() => handleFocusScroll(notesInputRef)}
-                  className="w-full px-6 py-4 bg-slate-100 border-0 rounded-2xl text-sm h-24 resize-none" 
+                  className="w-full px-4 py-3 bg-slate-100 border-0 rounded-xl text-xs h-16 resize-none" 
                   value={notes} 
-                  onChange={e => setNotes(e.target.value)} 
+                  onChange={e => setNotes(e.target.value.replace(/\b\w/g, l => l.toUpperCase()))} 
                 />
               </div>
             </div>
-            <div className="p-6 bg-white/80 border-t border-slate-100 backdrop-blur-md shrink-0">
-              <div className="flex justify-between items-end mb-4">
-                <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Total Bayar</span>
-                <span className="text-3xl font-black text-emerald-900 tracking-tighter">Rp {totalPrice.toLocaleString('id-ID')}</span>
+            <div className="p-4 bg-white/80 border-t border-slate-100 backdrop-blur-md shrink-0">
+              <div className="flex justify-between items-end mb-3">
+                <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Total Bayar</span>
+                <span className="text-2xl font-black text-emerald-900 tracking-tighter">Rp {totalPrice.toLocaleString('id-ID')}</span>
               </div>
-              <button disabled={cart.length === 0 || !tableInfo} onClick={handleSubmit} className="w-full py-5 bg-emerald-600/80 text-white rounded-4xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-2xl shadow-emerald-200 hover:bg-emerald-700 active:scale-95 disabled:grayscale transition-all"><Send className="w-5 h-5" /> Kirim Pesanan</button>
+              <button disabled={cart.length === 0 || !tableInfo} onClick={handleSubmit} className="w-full py-3 bg-emerald-600/80 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600/80 transition-all"><Send className="w-4 h-4" /> Pesan Menu</button>
             </div>
           </div>
         </div>
@@ -496,7 +401,7 @@ const WaiterPage: React.FC<WaiterPageProps> = ({ currentUser, onSendOrder, menuI
             <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Estimasi Total</span>
             <span className="text-4xl font-black text-emerald-900 tracking-tighter leading-none">Rp {totalPrice.toLocaleString('id-ID')}</span>
           </div>
-          <button disabled={cart.length === 0 || !tableInfo} onClick={handleSubmit} className="w-full py-6 bg-emerald-600 text-white rounded-[2.5rem] font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-2xl shadow-emerald-200 hover:bg-emerald-700 active:scale-95 disabled:grayscale transition-all"><Send className="w-5 h-5" /> Kirim Ke Admin</button>
+          <button disabled={cart.length === 0 || !tableInfo} onClick={handleSubmit} className="w-full py-6 bg-emerald-600 text-white rounded-[2.5rem] font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-2xl shadow-emerald-200 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600 transition-all"><Send className="w-5 h-5" /> Kirim Ke Admin</button>
         </div>
       </div>
     </div>
